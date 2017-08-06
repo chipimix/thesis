@@ -1,0 +1,492 @@
+<html>
+<style>
+
+    .line {
+        fill: none;
+        stroke: #000;
+        stroke-width: 1.5px;
+    }
+
+</style>
+
+
+<link href="examples.css" rel="stylesheet" type="text/css">
+<script language="javascript" type="text/javascript" src="d3/d3.js"></script>
+<script language="javascript" type="text/javascript" src="jquery.js"></script>
+
+<script type="text/javascript">
+    var n = 1000,
+        data0 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 512),
+        data1 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 512),
+        data2 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 512),
+        data3 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 512),
+        data4 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 32),
+        data5 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 32),
+        line,
+        line2,
+        x,
+        y,
+        y2,
+        chart0,
+        chart1,
+        chart2,
+        chart3,
+        chart4,
+        chart5;
+
+
+    //------------------------------------------------------------
+
+    function getPosition(string, subString, index) {
+        return string.split(subString, index).join(subString).length;
+    }
+    // Establish a connection to the ServerBIT
+    var ws = new WebSocket("ws://localhost:9006");
+    // Define the boolean data type as used in Python
+    var True = true;
+    var False = false;
+
+    ws.onopen = function () {
+    };
+
+    // Process the responses sent by the ServertBIT
+    ws.onmessage = function (e) {
+        msg = e.data.toString();
+
+        // Log the response onto the HTML body
+        if (msg.indexOf("read") < 0) {
+            $("body").html($("body").html() + msg + "<br/>")
+        }
+        // Evaluate the respose
+        //var unprocessed_data = e.data.substring(0,getPosition(e.data,'[',8));
+
+        eval(e.data)
+    };
+
+    // Detect when the page is unloaded or close
+    window.onbeforeunload = function () {
+        // Request ServerBIT to close the connection to BITalino
+        ws.send("device.close()");
+
+        // Request ServerBIT to shut down
+        ws.send("server.shutdown()");
+
+        ws.onclose = function () {
+        };
+        ws.close()
+    };
+
+    // Process the server messages related with the server
+    server = new function () {
+        this.connected = function (msg) {
+            // When a connection to ServerBIT is established, open the connection to the device
+            ws.send("server.BITalino('20:15:12:22:81:23')")
+        };
+        this.BITalino = function (msg) {
+            if (msg) {
+                // When a connection to the device is established start the acquisition
+                ws.send("device.start(1000, [0,1,2,3,4,5])")
+            }
+        }
+    };
+
+    // Process the server messages related with the <device></device>
+    device = new function () {
+        var auxv = 0;
+        this.start = function (msg) {
+            // When the device starts the acquisition read samples
+            ws.send("device.read(1000)[:,-6:]")
+        };
+        this.read = function (msg) {
+            // When a set of samples is read request more samples
+            ws.send("device.read(1000)[:,-6:]");
+
+            var in0 = msg[0];
+            var in1 = msg[1];
+            var in2 = msg[2];
+            var in3 = msg[3];
+            var in4 = msg[4];
+            var in5 = msg[5];
+
+            createRTInfoVis(in0, in1, in2, in3, in4, in5);
+
+            function createRTInfoVis(a0, a1, a2, a3, a4, a5) {
+
+                var svg = d3.select("svg#EEG1");
+                var svg1 = d3.select("svg#EEG2");
+                if (!svg.select("g").empty()) {                        // if previous plots already exists
+                    svg.select("g").remove()                         // remove them
+                }
+                if (!svg1.select("g").empty()) {                        //if previous plots already exists
+                    svg1.select("g").remove()                         // remove them
+                }
+                if (!d3.select("svg#PPG").select("g").empty()) {                        // if previous plots already exists
+                    d3.select("svg#PPG").select("g").remove()                         // remove them
+                }
+                if (!d3.select("svg#ACC_X").select("g").empty()) {                        //if previous plots already exists
+                    d3.select("svg#ACC_X").select("g").remove()                         // remove them
+                }
+                if (!d3.select("svg#ACC_Y").select("g").empty()) {                        //if previous plots already exists
+                    d3.select("svg#ACC_Y").select("g").remove()                         // remove them
+                }
+                if (!d3.select("svg#ACC_Z").select("g").empty()) {                        //if previous plots already exists
+                    d3.select("svg#ACC_Z").select("g").remove()                         // remove them
+                }
+                //1console.log("after= " + svg.select("g").empty());
+
+                var margin = {top: 20, right: 20, bottom: 20, left: 40},
+                    width = +svg.attr("width"),
+                    height = +svg.attr("height") - margin.top - margin.bottom;
+
+
+                chart0 = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart1 = svg1.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart2 = d3.select("svg#PPG").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart3 = d3.select("svg#ACC_X").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart4 = d3.select("svg#ACC_Y").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart5 = d3.select("svg#ACC_Z").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                x = d3.scaleLinear()
+                    .domain([0, n - 1])
+                    .range([0, width]);
+                y = d3.scaleLinear()
+                    .domain([1024, 0])
+                    .range([0, height]);
+                y2 = d3.scaleLinear()
+                    .domain([64, 0])
+                    .range([0, height]);
+                line = d3.line()
+                    .x(function (d, i) {
+                        return x(i);
+                    })
+                    .y(function (d, i) {
+                        return y(d);
+                    });
+
+                line2 = d3.line()
+                    .x(function (d, i) {
+                        return x(i);
+                    })
+                    .y(function (d, i) {
+                        return y2(d);
+                    });
+
+                chart0.append("defs").append("clipPath")
+                    .attr("id", "clip0") //attr must differ
+                    .append("rect")
+                    .attr("width", width)
+                    .attr("height", height);
+                chart0.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate(0," + y(0) + ")")
+                    .call(d3.axisBottom(x));
+                chart0.append("g")
+                    .attr("class", "axis axis--y")
+                    .call(d3.axisLeft(y));
+
+                chart1.append("defs").append("clipPath")
+                    .attr("id", "clip1")
+                    .append("rect")
+                    .attr("width", width)
+                    .attr("height", height);
+                chart1.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate(0," + y(0) + ")")
+                    .call(d3.axisBottom(x));
+                chart1.append("g")
+                    .attr("class", "axis axis--y")
+                    .call(d3.axisLeft(y));
+
+                chart2.append("defs").append("clipPath")
+                    .attr("id", "clip2")
+                    .append("rect")
+                    .attr("width", width)
+                    .attr("height", height);
+                chart2.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate(0," + y(0) + ")")
+                    .call(d3.axisBottom(x));
+                chart2.append("g")
+                    .attr("class", "axis axis--y")
+                    .call(d3.axisLeft(y));
+
+                chart3.append("defs").append("clipPath")
+                    .attr("id", "clip3")
+                    .append("rect")
+                    .attr("width", width)
+                    .attr("height", height);
+                chart3.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate(0," + y2(0) + ")")
+                    .call(d3.axisBottom(x));
+                chart3.append("g")
+                    .attr("class", "axis axis--y")
+                    .call(d3.axisLeft(y2));
+
+                chart4.append("defs").append("clipPath")
+                    .attr("id", "clip4")
+                    .append("rect")
+                    .attr("width", width)
+                    .attr("height", height);
+                chart4.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate(0," + y2(0) + ")")
+                    .call(d3.axisBottom(x));
+                chart4.append("g")
+                    .attr("class", "axis axis--y")
+                    .call(d3.axisLeft(y2));
+
+                chart5.append("defs").append("clipPath")
+                    .attr("id", "clip5")
+                    .append("rect")
+                    .attr("width", width)
+                    .attr("height", height);
+                chart5.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate(0," + y2(0) + ")")
+                    .call(d3.axisBottom(x));
+                chart5.append("g")
+                    .attr("class", "axis axis--y")
+                    .call(d3.axisLeft(y2));
+
+                chart0.append("g")
+                    .attr("clip-path", "url(#clip0)")
+                    .append("path")
+                    .datum(data0)
+                    .attr("class", "line")
+                    .transition()
+                    .duration(50)
+                    .ease(d3.easeLinear)
+                    .on("start", tick0);
+
+                chart1.append("g")
+                    .attr("clip-path", "url(#clip1)")
+                    .append("path")
+                    .datum(data1)
+                    .attr("class", "line")
+                    .transition()
+                    .duration(50)
+                    .ease(d3.easeLinear)
+                    .on("start", tick1);
+
+                chart2.append("g")
+                    .attr("clip-path", "url(#clip2)")
+                    .append("path")
+                    .datum(data2)
+                    .attr("class", "line")
+                    .transition()
+                    .duration(50)
+                    .ease(d3.easeLinear)
+                    .on("start", tick2);
+
+                chart3.append("g")
+                    .attr("clip-path", "url(#clip3)")
+                    .append("path")
+                    .datum(data3)
+                    .attr("class", "line")
+                    .transition()
+                    .duration(50)
+                    .ease(d3.easeLinear)
+                    .on("start", tick3);
+
+                chart4.append("g")
+                    .attr("clip-path", "url(#clip4)")
+                    .append("path")
+                    .datum(data4)
+                    .attr("class", "line")
+                    .transition()
+                    .duration(50)
+                    .ease(d3.easeLinear)
+                    .on("start", tick4);
+
+                chart5.append("g")
+                    .attr("clip-path", "url(#clip5)")
+                    .append("path")
+                    .datum(data5)
+                    .attr("class", "line")
+                    .transition()
+                    .duration(50)
+                    .ease(d3.easeLinear)
+                    .on("start", tick5);
+
+            }
+/*
+            function tick(curr_data, new_data, svg) {
+                if (new_data.length > 49) {                 // Push a new data point onto the back.
+                    for (var i = 0; i < 50; i++) {
+                        curr_data.push(new_data.shift());
+                    }
+                    svg                  // Redraw the line.
+                        .attr("d", line)
+                        .attr("transform", null);
+                    // Slide it to the left.
+                    svg
+                        .attr("transform", "translate(" + x(-1) + ",0)")
+                        .transition()
+                        .on("start", tick0);
+                    for (var i = 0; i < 50; i++) {
+                        curr_data.shift();                    // Pop the old data point off the front.
+                    }
+                }
+            }
+*/
+
+            function tick0() {
+                if (in0.length > 49) {                 // Push a new data point onto the back.
+                    for (var i = 0; i < 50; i++) {
+                        data0.push(in0.shift());
+                    }
+                    d3.select(this)                     // Redraw the line.
+                        .attr("d", line)
+                        .attr("transform", null);
+                    // Slide it to the left.
+                    d3.active(this)
+                        .attr("transform", "translate(" + x(-1) + ",0)")
+                        .transition()
+                        .on("start", tick0);
+                    for (var i = 0; i < 50; i++) {
+                        data0.shift();                    // Pop the old data point off the front.
+                    }
+                }
+            }
+
+            function tick1() {
+                if (in1.length > 49) {                 // Push a new data point onto the back.
+                    for (var i = 0; i < 50; i++) {
+                        data1.push(in1.shift());
+                    }
+                    d3.select(this)                     // Redraw the line.
+                        .attr("d", line)
+                        .attr("transform", null);
+                    // Slide it to the left.
+                    d3.active(this)
+                        .attr("transform", "translate(" + x(-1) + ",0)")
+                        .transition()
+                        .on("start", tick1);
+                    for (var i = 0; i < 50; i++) {
+                        data1.shift();                    // Pop the old data point off the front.
+                    }
+                }
+            }
+
+            function tick2() {
+                if (in2.length > 49) {                 // Push a new data point onto the back.
+                    for (var i = 0; i < 50; i++) {
+                        data2.push(in2.shift());
+                    }
+                    d3.select(this)                     // Redraw the line.
+                        .attr("d", line)
+                        .attr("transform", null);
+                    // Slide it to the left.
+                    d3.active(this)
+                        .attr("transform", "translate(" + x(-1) + ",0)")
+                        .transition()
+                        .on("start", tick2);
+                    for (var i = 0; i < 50; i++) {
+                        data2.shift();                    // Pop the old data point off the front.
+                    }
+                }
+            }
+
+            function tick3() {
+                if (in3.length > 49) {                 // Push a new data point onto the back.
+                    for (var i = 0; i < 50; i++) {
+                        data3.push(in3.shift());
+                    }
+                    d3.select(this)                     // Redraw the line.
+                        .attr("d", line)
+                        .attr("transform", null);
+                    // Slide it to the left.
+                    d3.active(this)
+                        .attr("transform", "translate(" + x(-1) + ",0)")
+                        .transition()
+                        .on("start", tick3);
+                    for (var i = 0; i < 50; i++) {
+                        data3.shift();                    // Pop the old data point off the front.
+                    }
+                }
+            }
+
+            function tick4() {
+                if (in4.length > 49) {                 // Push a new data point onto the back.
+                    for (var i = 0; i < 50; i++) {
+                        data4.push(in4.shift());
+                    }
+                    d3.select(this)                     // Redraw the line.
+                        .attr("d", line2)
+                        .attr("transform", null);
+                    // Slide it to the left.
+                    d3.active(this)
+                        .attr("transform", "translate(" + x(-1) + ",0)")
+                        .transition()
+                        .on("start", tick4);
+                    for (var i = 0; i < 50; i++) {
+                        data4.shift();                    // Pop the old data point off the front.
+                    }
+                }
+            }
+
+            function tick5() {
+                if (in5.length > 49) {                 // Push a new data point onto the back.
+                    for (var i = 0; i < 50; i++) {
+                        data5.push(in5.shift());
+                    }
+                    d3.select(this)                     // Redraw the line.
+                        .attr("d", line2)
+                        .attr("transform", null);
+                    // Slide it to the left.
+                    d3.active(this)
+                        .attr("transform", "translate(" + x(-1) + ",0)")
+                        .transition()
+                        .on("start", tick5);
+                    for (var i = 0; i < 50; i++) {
+                        data5.shift();                    // Pop the old data point off the front.
+                    }
+                }
+            }
+
+        };
+
+        this.version = function (msg) {
+        };
+        this.stop = function (msg) {
+        };
+        this.close = function (msg) {
+        }
+
+    };
+
+    // Process the server messages related with exceptions
+    sys = new function () {
+        this.exception = function (msg) {
+            alert(msg.toString());
+        }
+    };
+
+    console.log("end of script");
+
+</script>
+<body>
+<section style="width:90%;height:33%;margin:auto; ;">
+    <svg id="EEG1" width="600" height="263"></svg>
+    <svg id="EEG2" width="600" height="263"></svg>
+    <!--  <div id="RAW_L" style="width: 50%;height: 100%;float: left;"></div>
+      <div id="RAW_R" style="margin-left: 50%; height: 100%;"></div> -->
+</section> <!--
+        <section style="width:100%;height:30%;margin:auto; padding:10px;">
+            <div id="EEG_L" style="width: 50%;height: 100%;float: left;"></div>
+            <div id="EEG_R" style="margin-left: 50%; height: 100%;"></div>
+        </section> -->
+
+<section style="width:90%;height:33%;margin:auto ">
+    <svg id="PPG" width="600" height="263"></svg>
+    <svg id="ACC_X" width="600" height="263"></svg>
+</section>
+<section style="width:90%;height:33%;margin:auto;">
+    <svg id="ACC_Y" width="600" height="263"></svg>
+    <svg id="ACC_Z" width="600" height="263"></svg>
+</section>
+
+<svg id="BAR_CHART" style="width:400px;height:300px"></svg>
+</body>
+</html>
