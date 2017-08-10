@@ -1,60 +1,420 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-    <title>BrainBIT InfoVis</title>
-    <script type="text/javascript" src="http://mbostock.github.com/d3/d3.v2.js"></script>
-    <script type="text/javascript" src="simple-graph.js"></script>
-    <style type="text/css">
-      body { font: 13px sans-serif; }
-      rect { fill: #fff; }
-      ul {
-        list-style-type: none;
-        margin: 0.5em 0em 0.5em 0em;
-        width: 100%; }
-        ul li {
-          display: table-cell;
-          vertical-align: middle;
-          margin: 0em;
-          padding: 0em 1em; }
-      .axis { font-size: 1.5em; }
-      .chart {
-        background-color: #F7F2C5;
-        width: 960px;
-        height: 500px; }
-      circle, .line {
+<html lang="en">
+<script language="javascript" type="text/javascript" src="d3/d3.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <title>retroVIS</title>
+</head>
+<style>
+    .line {
         fill: none;
-        stroke: steelblue;
-        stroke-width: 2px; }
-      circle {
-        fill: white;
-        fill-opacity: 0.2;
-        cursor: move; }
-        circle.selected {
-          fill: #ff7f0e;
-          stroke: #ff7f0e; }
-        circle:hover {
-          fill: #ff7f0e;
-          stroke: #707f0e; }
-        circle.selected:hover {
-          fill: #ff7f0e;
-          stroke: #ff7f0e; }
-    </style>
-  </head>
-  <body>
-    <div id="chart1" class="chart"></div>
-    <script type="text/javascript">
+        stroke: #000;
+        stroke-width: 1.5px;
+    }
+    #slider {
+        position: absolute;
+        bottom: 15px;
+        width: 100%;
+        text-align:center;
+    }
+    #rangeSlider {
+        bottom: 15px;
+        width: 80%;
+        text-align:center;
+    }
+</style>
+<body>
 
+	<div id="slider">
+		<input type='range' min='0' max='0' step='1' value='0' id='rangeSlider' />
+	    <button type="button" id="start">start</button>
+	    <button type="button" id="stop">stop</button>
+	</div>
+	<div id="circles">
+        <div id ="circle1" cx="45" cy="45" r="15"></div>
+        <div id="circle2" cx="90" cy="45" r="15"></div>
+    </div>
+    <section style="width:90%;height:33%;margin:auto; ;">
+        <svg id="EEG1" width="600" height="263"></svg>
+        <svg id="EEG2" width="600" height="263"></svg>
+        <!--  <div id="RAW_L" style="width: 50%;height: 100%;float: left;"></div>
+          <div id="RAW_R" style="margin-left: 50%; height: 100%;"></div> -->
+    </section>
 
+    <section style="width:90%;height:33%;margin:auto ">
+        <svg id="PPG" width="600" height="263"></svg>
+        <svg id="ACC_X" width="600" height="263"></svg>
+    </section>
+    <section style="width:90%;height:33%;margin:auto;">
+        <svg id="ACC_Y" width="600" height="263"></svg>
+        <svg id="ACC_Z" width="600" height="263"></svg>
+    </section>
+</body>
 
-      graph = new SimpleGraph("chart1", {
-          "xmax": 60, "xmin": 0,
-          "ymax": 40, "ymin": 0,
-          "title": "Simple Graph1",
-          "xlabel": "X Axis",
-          "ylabel": "Y Axis"
+<script>
+    var sample_rate = 1000;
+    var a0=[],
+        a1=[],
+        a2=[],
+        a3=[],
+        a4=[],
+        a5=[];
+    var line,line1,line2;
+    var y,y2,y3,x,x2;
+    var a0_chart = Array.apply(null, new Array(sample_rate/2)).map(Number.prototype.valueOf, 0),
+        a1_chart=Array.apply(null, new Array(sample_rate/2)).map(Number.prototype.valueOf, 0),
+        a2_chart=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
+        a3_chart=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
+        a4_chart=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 32),
+        a5_chart=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 32);
+
+    var rowToHtml = function( row ) {
+     var result = "";
+     for (key in row) {
+       result += key + ": " + row[key] + "<br/>"
+     }
+     return result;
+    }
+
+//d3.text("data/testnh.csv", function(text) {
+//  var data = d3.csv.parseRows(text).map(function(row) {
+//    return row.map(function(value) {
+//      return +value;
+//    });
+//  });
+//  console.log(data);
+//});
+    var previewCsvUrl = function( csvUrl ) {
+     d3.text( csvUrl, function( text ) {
+         var data = d3.csvParseRows(text).map(function(row){
+             return row.map(function(value){
+                 return +value; //converts string to number and returns it
+             });
+         });
+
+//---------------------File NOW uploaded into browser-------------------------------------------------------------
+
+//         console.log(data);
+         //d3.select("div#preview").html("<b>First row:</b><br/>" + rowToHtml( data[0] ));
+         a0=data[0];
+         a1=data[1];
+         a2=data[2];
+         a3=data[3];
+         a4=data[4];
+         a5=data[5];
+
+         var svg = d3.select("svg#EEG1");
+         var margin = {top: 20, right: 20, bottom: 20, left: 40},
+             width = +svg.attr("width"),
+             height = +svg.attr("height") - margin.top - margin.bottom;
+         chart0 = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+         chart1 = d3.select("svg#EEG2").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+         chart2=  d3.select("svg#PPG").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");;
+         chart3=  d3.select("svg#ACC_X").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");;
+         chart4=  d3.select("svg#ACC_Y").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");;
+         chart5=  d3.select("svg#ACC_Z").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+         var s= d3.select("#rangeSlider").attr("max",data[0].length/500);
+         var curr_pos=d3.select("#rangeSlider").property("value");
+
+         x = d3.scaleLinear()
+            .domain([0, sample_rate/2 - 1])
+            .range([0, width]);
+
+         x2 = d3.scaleLinear()
+            .domain([0, sample_rate/2 - 1])
+            .range([0, width]);
+
+         y = d3.scaleLinear()
+            .domain([1e8, 0])
+            .range([0, height]);
+
+         y2 = d3.scaleLinear()
+            .domain([1024, 0])
+            .range([0, height]);
+
+         y3 = d3.scaleLinear()
+            .domain([64, 0])
+            .range([0, height]);
+
+         line = d3.line()
+             .x(function (d, i) {
+                 return x(i);
+             })
+             .y(function (d, i) {
+                 return y(d);
+             });
+
+         line1 = d3.line()
+             .x(function (d, i) {
+                 return x2(i);
+             })
+             .y(function (d, i) {
+                 return y2(d);
+             });
+
+         line2 = d3.line()
+             .x(function (d, i) {
+                 return x2(i);
+             })
+             .y(function (d, i) {
+                 return y3(d);
+             });
+
+         chart0.append("defs").append("clipPath")
+                    .attr("id", "clip0") //attr must differ
+                    .append("rect")
+                    .attr("width", width)
+                    .attr("height", height);
+         chart0.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + y(0) + ")")
+            .call(d3.axisBottom(x));
+         chart0.append("g")
+            .attr("class", "axis axis--y")
+            .call(d3.axisLeft(y));
+         chart0.append("g")
+             .attr("clip-path", "url(#clip0)")
+             .append("path")
+             .attr("id","path_0")
+             .datum(a0_chart)
+             .attr("class", "line")
+             .attr("d", line)
+             .attr("transform", null);
+
+         chart1.append("defs").append("clipPath")
+            .attr("id", "clip1")
+            .append("rect")
+            .attr("width", width)
+            .attr("height", height);
+         chart1.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + y(0) + ")")
+            .call(d3.axisBottom(x));
+         chart1.append("g")
+            .attr("class", "axis axis--y")
+            .call(d3.axisLeft(y));
+         chart1.append("g")
+             .attr("clip-path", "url(#clip1)")
+             .append("path")
+             .attr("id","path_1")
+             .datum(a1_chart)
+             .attr("class", "line")
+             .attr("d", line)
+             .attr("transform", null);
+
+         chart2.append("defs").append("clipPath")
+            .attr("id", "clip2")
+            .append("rect")
+            .attr("width", width)
+            .attr("height", height);
+         chart2.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + y2(0) + ")")
+            .call(d3.axisBottom(x2));
+         chart2.append("g")
+            .attr("class", "axis axis--y")
+            .call(d3.axisLeft(y2));
+         chart2.append("g")
+             .attr("clip-path", "url(#clip1)")
+             .append("path")
+             .attr("id","path_2")
+             .datum(a2_chart)
+             .attr("class", "line")
+             .attr("d", line1)
+             .attr("transform", null);
+
+         chart3.append("defs").append("clipPath")
+            .attr("id", "clip3")
+            .append("rect")
+            .attr("width", width)
+            .attr("height", height);
+         chart3.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + y2(0) + ")")
+            .call(d3.axisBottom(x2));
+         chart3.append("g")
+            .attr("class", "axis axis--y")
+            .call(d3.axisLeft(y2));
+         chart3.append("g")
+             .attr("clip-path", "url(#clip1)")
+             .append("path")
+             .attr("id","path_3")
+             .datum(a3_chart)
+             .attr("class", "line")
+             .attr("d", line1)
+             .attr("transform", null);
+
+         chart4.append("defs").append("clipPath")
+            .attr("id", "clip4")
+            .append("rect")
+            .attr("width", width)
+            .attr("height", height);
+         chart4.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + y3(0) + ")")
+            .call(d3.axisBottom(x2));
+         chart4.append("g")
+            .attr("class", "axis axis--y")
+            .call(d3.axisLeft(y3));
+         chart4.append("g")
+             .attr("clip-path", "url(#clip1)")
+             .append("path")
+             .attr("id","path_4")
+             .datum(a3_chart)
+             .attr("class", "line")
+             .attr("d", line2)
+             .attr("transform", null);
+
+         chart5.append("defs").append("clipPath")
+            .attr("id", "clip5")
+            .append("rect")
+            .attr("width", width)
+            .attr("height", height);
+         chart5.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + y3(0) + ")")
+            .call(d3.axisBottom(x2));
+         chart5.append("g")
+            .attr("class", "axis axis--y")
+            .call(d3.axisLeft(y3));
+         chart5.append("g")
+             .attr("clip-path", "url(#clip1)")
+             .append("path")
+             .attr("id","path_5")
+             .datum(a3_chart)
+             .attr("class", "line")
+             .attr("d", line2)
+             .attr("transform", null);
+
+         var s= d3.select("#rangeSlider").attr("max",data[0].length/500);
+
+         d3.select('#rangeSlider').on('input', function() {
+             updateFFT();
+             updateLineChart();
         });
 
-    </script>
-  </body>
+        var myTimer;
+        d3.select("#start").on("click", function() {
+            clearInterval (myTimer);
+              myTimer = setInterval (function() {
+                  var b= d3.select("#rangeSlider");
+                var t = (+b.property("value") + 1) % (+b.property("max") + 1);
+                if (t == 0) {
+                    t = +b.property("min");
+                }
+                b.property("value", t);
+                updateFFT();
+                updateLineChart();
+          }, 1000);
+        });
+
+        d3.select("#stop").on("click", function() {
+          clearInterval (myTimer);
+        });
+
+        //updateLineChart interpolates xvalues (time on xx axis)
+        function updateLineChart(){
+            var curr_pos=d3.select("#rangeSlider").property("value");
+            for (var i = 0; i < 1000; i++) {
+                a2_chart.push(Number(a2[curr_pos*i+i]));
+                a3_chart.push(Number(a3[curr_pos*i+i]));
+                a4_chart.push(Number(a4[curr_pos*i+i]));
+                a5_chart.push(Number(a5[curr_pos*i+i]));
+            }
+
+            d3.select("path#path_2.line")
+                .attr("d",line1(a2_chart))
+                .attr("transform",null)
+                .transition()
+                .attr("transform","translate("+x2(-1)+")")
+                .duration(100);
+            d3.select("path#path_3.line")
+                .attr("d",line1(a3_chart))
+                .attr("transform",null)
+                .transition()
+                .attr("transform","translate("+x2(-1)+")")
+                .duration(100);
+            d3.select("path#path_4.line")
+                .attr("d",line2(a4_chart))
+                .attr("transform",null)
+                .transition()
+                .attr("transform","translate("+x2(-1)+")")
+                .duration(100);
+            d3.select("path#path_5.line")
+                .attr("d",line2(a5_chart))
+                .attr("transform",null)
+                .transition()
+                .attr("transform","translate("+x2(-1)+")")
+                .duration(100);
+
+            for (var i = 0; i < 1000; i++) {
+                a2_chart.shift();
+                a3_chart.shift();
+                a4_chart.shift();
+                a5_chart.shift();
+            }
+        }
+
+
+        //updateFFT interpolates yvalues (frequencies on xx axis)
+        function updateFFT(){
+            var curr_pos=d3.select("#rangeSlider").property("value");
+            for (var i = 0; i < 500; i++) {
+                a0_chart.push(Number(a0[curr_pos*i+i]));
+                a0_chart.shift();
+                a1_chart.push(Number(a1[curr_pos*i+i]));
+                a1_chart.shift();
+            }
+
+            d3.select("path#path_0.line")
+                .transition()
+                .duration(500)
+                .attr("d",line(a0_chart))
+              d3.select("path#path_1.line")
+                .transition()
+                .duration(500)
+                .attr("d",line(a1_chart))
+
+        }
+
+
+        })
+ //---------------------File NOT uploaded into browser-------------------------------------------------------------
+
+    }
+
+    d3.select("html")
+      .style("height","100%")
+
+    d3.select("body")
+      .style("height","100%")
+      .style("font", "12px sans-serif")
+
+    .append("input")
+      .attr("type", "file")
+      .attr("accept", ".csv")
+      .style("margin", "5px")
+      .style("top", "0%")
+      .style("left", "0%")
+      .style("position", "fixed")
+      .on("change", function() {
+        var file = d3.event.target.files[0];
+        if (file) {
+          var reader = new FileReader();
+            reader.onloadend = function(evt) {
+              var dataUrl = evt.target.result;
+              // The following call results in an "Access denied" error in IE.
+              previewCsvUrl(dataUrl);
+          };
+         reader.readAsDataURL(file);
+        }
+     })
+
+    d3.select("body")
+    .append("div")
+     .attr("id", "preview")
+     .style("margin", "5px")
+
+
+</script>
 </html>
