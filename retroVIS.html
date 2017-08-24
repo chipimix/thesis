@@ -16,6 +16,7 @@
         bottom: 15px;
         width: 100%;
         text-align:center;
+        font-size: 20px;
     }
     #rangeSlider {
         bottom: 15px;
@@ -26,54 +27,62 @@
 <body>
 
 	<div id="slider">
-		<input type='range' min='0' max='0' step='1' value='0' id='rangeSlider' />
-	    <button type="button" id="start">start</button>
-	    <button type="button" id="stop">stop</button>
+        <text fill="red" id="time">00:00</text>
+        <input type='range' min='0' max='0' step='1' value='0' id='rangeSlider' />
+	    <button type="button" id="start">Play</button>
+	    <button type="button" id="stop">Pause</button>
 	</div>
-	<div id="circles">
-        <div id ="circle1" cx="45" cy="45" r="15"></div>
-        <div id="circle2" cx="90" cy="45" r="15"></div>
-    </div>
-    <section style="width:90%;height:33%;margin:auto; ;">
-        <svg id="EEG1" width="600" height="263"></svg>
-        <svg id="EEG2" width="600" height="263"></svg>
+
+    <section style="width:100%;height:30%;margin:auto; ;">
+        <svg id="EEG1" width="740" height="263"></svg>
+        <svg id="EEG2" width="740" height="263"></svg>
         <!--  <div id="RAW_L" style="width: 50%;height: 100%;float: left;"></div>
           <div id="RAW_R" style="margin-left: 50%; height: 100%;"></div> -->
     </section>
 
-    <section style="width:90%;height:33%;margin:auto ">
-        <svg id="PPG" width="600" height="263"></svg>
-        <svg id="ACC_X" width="600" height="263"></svg>
+    <section style="width:100%;height:30%;margin:auto ">
+        <svg id="PPG" width="740" height="263"></svg>
+        <svg id="VALNC" width="740" height="263"></svg>
     </section>
-    <section style="width:90%;height:33%;margin:auto;">
-        <svg id="ACC_Y" width="600" height="263"></svg>
-        <svg id="ACC_Z" width="600" height="263"></svg>
+    <section style="width:100%;height:30%;margin:auto;">
+        <svg id="FOCUS" width="740" height="263">
+
+        </svg>
+        <svg id="MEDI" width="740" height="263"></svg>
     </section>
 </body>
 
 <script>
     var sample_rate = 1000;
-    var a0=[],
+    var fft_res = 501;
+    var a0=[],          //channels with complete recording data
         a1=[],
-        a2=[],
+        a2=[]/*,
         a3=[],
         a4=[],
-        a5=[];
+        a5=[]*/;
     var line,line1,line2;
     var y,y2,y3,x,x2;
-    var a0_chart = Array.apply(null, new Array(sample_rate/2)).map(Number.prototype.valueOf, 0),
-        a1_chart=Array.apply(null, new Array(sample_rate/2)).map(Number.prototype.valueOf, 0),
-        a2_chart=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
-        a3_chart=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
-        a4_chart=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 32),
-        a5_chart=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 32);
+    var data0 = Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 0),
+        data1=Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 0),
+        data2=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
+        data3=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
+        data4=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 32),
+        data5=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 32);
+     var chart0,
+        chart1,
+        chart2,
+        chart3,
+        chart4,
+        chart5;
+     var curr_pos;
 
     var rowToHtml = function( row ) {
-     var result = "";
-     for (key in row) {
-       result += key + ": " + row[key] + "<br/>"
-     }
-     return result;
+        var result = "";
+        for (key in row) {
+            result += key + ": " + row[key] + "<br/>"
+        }
+        return result;
     }
 
 //d3.text("data/testnh.csv", function(text) {
@@ -91,11 +100,25 @@
                  return +value; //converts string to number and returns it
              });
          });
-
 //---------------------File NOW uploaded into browser-------------------------------------------------------------
+        //select corresponding div to each new svg image
+         var svg0 = d3.select("svg#EEG1");
+         var svg1 = d3.select("svg#EEG2");
+         var svg2 = d3.select("svg#PPG");
+         var svg3 = d3.select("svg#VALNC");
+         var svg4 = d3.select("svg#FOCUS");
+         var svg5 = d3.select("svg#MEDI");
+         //remove any previously drawn svg images (needed in case of consecutive csv files opened in same session)
+        if (!svg0.select("g").empty()) {svg.select("g").remove()}
+        if (!svg1.select("g").empty()) {svg1.select("g").remove()}
+        if (!svg2.select("g").empty()) {d3.select("svg#PPG").select("g").remove()}
+        if (!svg3.select("g").empty()) {d3.select("svg#VALNC").select("g").remove()}
+        if (!svg4.select("g").empty()) {d3.select("svg#FOCUS").select("g").remove()}
+        if (!svg5.select("g").empty()) {d3.select("svg#MEDI").select("g").remove()}
 
 //         console.log(data);
          //d3.select("div#preview").html("<b>First row:</b><br/>" + rowToHtml( data[0] ));
+         //set current second's recieved data
          a0=data[0];
          a1=data[1];
          a2=data[2];
@@ -103,38 +126,40 @@
          a4=data[4];
          a5=data[5];
 
-         var svg = d3.select("svg#EEG1");
-         var margin = {top: 20, right: 20, bottom: 20, left: 40},
-             width = +svg.attr("width"),
-             height = +svg.attr("height") - margin.top - margin.bottom;
-         chart0 = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-         chart1 = d3.select("svg#EEG2").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-         chart2=  d3.select("svg#PPG").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");;
-         chart3=  d3.select("svg#ACC_X").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");;
-         chart4=  d3.select("svg#ACC_Y").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");;
-         chart5=  d3.select("svg#ACC_Z").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-         var s= d3.select("#rangeSlider").attr("max",data[0].length/500);
-         var curr_pos=d3.select("#rangeSlider").property("value");
+         //set up margins for each graph
+         var margin = {top: 30, right: 30, bottom: 30, left: 50}, width = +svg0.attr("width"), height = +svg0.attr("height") - margin.top - margin.bottom;
+         //set up title of each svg image
+         svg0.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+             .style("font-size", "16px").style("text-decoration", "underline").text("Left Electroencephalogram");
+         svg1.append("text").attr("x", "50%").attr("y","15%").attr("text-anchor", "middle")
+             .style("font-size", "16px").style("text-decoration", "underline").text("Right Electroencephalogram");
+         svg2.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+             .style("font-size", "16px").style("text-decoration", "underline").text("Photoplethysmogram");
+         svg3.append("text").attr("x", (width / 2)).attr("y", 0 - (margin.top / 2)).attr("text-anchor", "middle")
+             .style("font-size", "16px").style("text-decoration", "underline").text("ACC X");
+         svg4.append("text").attr("x", (width / 2)).attr("y", 0 - (margin.top / 2)).attr("text-anchor", "middle")
+             .style("font-size", "16px").style("text-decoration", "underline").text("ACC Y");
+         svg5.append("text").attr("x", (width / 2)).attr("y", 0 - (margin.top / 2)).attr("text-anchor", "middle")
+             .style("font-size", "16px").style("text-decoration", "underline").text("ACC Z");
 
-         x = d3.scaleLinear()
-            .domain([0, sample_rate/2 - 1])
-            .range([0, width]);
+         //translate each svg image so we can have space for the axis
+         chart0= svg0.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+         chart1= svg1.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+         chart2= svg2.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+         chart3= svg3.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+         chart4= svg4.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+         chart5= svg5.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-         x2 = d3.scaleLinear()
-            .domain([0, sample_rate/2 - 1])
-            .range([0, width]);
+         var s= d3.select("#rangeSlider").attr("max",data[0].length/fft_res);
 
-         y = d3.scaleLinear()
-            .domain([1e8, 0])
-            .range([0, height]);
+         curr_pos=d3.select("#rangeSlider").property("value");
 
-         y2 = d3.scaleLinear()
-            .domain([1024, 0])
-            .range([0, height]);
+         x = d3.scaleLinear().domain([0, fft_res-400-1]).range([0, width-margin.left*1.2]);
+         x2 = d3.scaleLinear().domain([0, sample_rate - 1]).range([0, width-margin.left*1.2]);
 
-         y3 = d3.scaleLinear()
-            .domain([64, 0])
-            .range([0, height]);
+         y = d3.scaleLinear().domain([1000000, 0]).range([0, height-margin.top]);
+         y2 = d3.scaleLinear().domain([1024, 0]).range([0, height-margin.top]);
+         y3 = d3.scaleLinear().domain([64, 0]).range([0, height-margin.top]);
 
          line = d3.line()
              .x(function (d, i) {
@@ -143,15 +168,9 @@
              .y(function (d, i) {
                  return y(d);
              });
-
          line1 = d3.line()
-             .x(function (d, i) {
-                 return x2(i);
-             })
-             .y(function (d, i) {
-                 return y2(d);
-             });
-
+             .x(function (d, i) { return x2(i);})
+             .y(function (d, i) { return y2(d);});
          line2 = d3.line()
              .x(function (d, i) {
                  return x2(i);
@@ -161,10 +180,10 @@
              });
 
          chart0.append("defs").append("clipPath")
-                    .attr("id", "clip0") //attr must differ
-                    .append("rect")
-                    .attr("width", width)
-                    .attr("height", height);
+             .attr("id", "clip0") //attr must differ
+             .append("rect")
+             .attr("width", width)
+             .attr("height", height);
          chart0.append("g")
             .attr("class", "axis axis--x")
             .attr("transform", "translate(0," + y(0) + ")")
@@ -176,117 +195,108 @@
              .attr("clip-path", "url(#clip0)")
              .append("path")
              .attr("id","path_0")
-             .datum(a0_chart)
              .attr("class", "line")
-             .attr("d", line)
+             .attr("d", line(data0))
              .attr("transform", null);
 
          chart1.append("defs").append("clipPath")
-            .attr("id", "clip1")
-            .append("rect")
-            .attr("width", width)
-            .attr("height", height);
+             .attr("id", "clip1")
+             .append("rect")
+             .attr("width", width)
+             .attr("height", height);
          chart1.append("g")
-            .attr("class", "axis axis--x")
-            .attr("transform", "translate(0," + y(0) + ")")
-            .call(d3.axisBottom(x));
+             .attr("class", "axis axis--x")
+             .attr("transform", "translate(0," + y(0) + ")")
+             .call(d3.axisBottom(x));
          chart1.append("g")
-            .attr("class", "axis axis--y")
-            .call(d3.axisLeft(y));
+             .attr("class", "axis axis--y")
+             .call(d3.axisLeft(y));
          chart1.append("g")
-             .attr("clip-path", "url(#clip1)")
-             .append("path")
-             .attr("id","path_1")
-             .datum(a1_chart)
-             .attr("class", "line")
-             .attr("d", line)
-             .attr("transform", null);
-
+              .attr("clip-path", "url(#clip1)")
+              .append("path")
+              .attr("id","path_1")
+              .attr("class", "line")
+              .attr("d", line(data1))
+              .attr("transform", null);
          chart2.append("defs").append("clipPath")
-            .attr("id", "clip2")
-            .append("rect")
-            .attr("width", width)
-            .attr("height", height);
+              .attr("id", "clip2")
+              .append("rect")
+              .attr("width", width)
+              .attr("height", height);
          chart2.append("g")
-            .attr("class", "axis axis--x")
-            .attr("transform", "translate(0," + y2(0) + ")")
-            .call(d3.axisBottom(x2));
+              .attr("class", "axis axis--x")
+              .attr("transform", "translate(0," + y2(0) + ")")
+              .call(d3.axisBottom(x2));
          chart2.append("g")
-            .attr("class", "axis axis--y")
-            .call(d3.axisLeft(y2));
-         chart2.append("g")
-             .attr("clip-path", "url(#clip1)")
-             .append("path")
-             .attr("id","path_2")
-             .datum(a2_chart)
-             .attr("class", "line")
-             .attr("d", line1)
-             .attr("transform", null);
+              .attr("class", "axis axis--y")
+              .call(d3.axisLeft(y2));
+         chart2.append("path")
+              .attr("id","path_2")
+              .attr("class", "line")
+              .attr("d", line1(data2))
+              .attr("transform",null);
 
          chart3.append("defs").append("clipPath")
-            .attr("id", "clip3")
-            .append("rect")
-            .attr("width", width)
-            .attr("height", height);
+             .attr("id", "clip3")
+             .append("rect")
+             .attr("width", width)
+             .attr("height", height);
          chart3.append("g")
-            .attr("class", "axis axis--x")
-            .attr("transform", "translate(0," + y2(0) + ")")
-            .call(d3.axisBottom(x2));
+             .attr("class", "axis axis--x")
+             .attr("transform", "translate(0," + y2(0) + ")")
+             .call(d3.axisBottom(x2));
          chart3.append("g")
-            .attr("class", "axis axis--y")
-            .call(d3.axisLeft(y2));
+             .attr("class", "axis axis--y")
+             .call(d3.axisLeft(y2));
          chart3.append("g")
-             .attr("clip-path", "url(#clip1)")
+             .attr("clip-path", "url(#clip3)")
              .append("path")
              .attr("id","path_3")
-             .datum(a3_chart)
              .attr("class", "line")
-             .attr("d", line1)
+             .attr("d", line1(data3))
              .attr("transform", null);
 
          chart4.append("defs").append("clipPath")
-            .attr("id", "clip4")
-            .append("rect")
-            .attr("width", width)
-            .attr("height", height);
+             .attr("id", "clip4")
+             .append("rect")
+             .attr("width", width)
+             .attr("height", height);
          chart4.append("g")
-            .attr("class", "axis axis--x")
-            .attr("transform", "translate(0," + y3(0) + ")")
-            .call(d3.axisBottom(x2));
+             .attr("class", "axis axis--x")
+             .attr("transform", "translate(0," + y3(0) + ")")
+             .call(d3.axisBottom(x2));
          chart4.append("g")
-            .attr("class", "axis axis--y")
-            .call(d3.axisLeft(y3));
+             .attr("class", "axis axis--y")
+             .call(d3.axisLeft(y3));
          chart4.append("g")
-             .attr("clip-path", "url(#clip1)")
+             .attr("clip-path", "url(#clip4)")
              .append("path")
              .attr("id","path_4")
-             .datum(a3_chart)
              .attr("class", "line")
-             .attr("d", line2)
+             .attr("d", line2(data3))
              .attr("transform", null);
 
          chart5.append("defs").append("clipPath")
-            .attr("id", "clip5")
-            .append("rect")
-            .attr("width", width)
-            .attr("height", height);
+             .attr("id", "clip5")
+             .append("rect")
+             .attr("width", width)
+             .attr("height", height);
          chart5.append("g")
-            .attr("class", "axis axis--x")
-            .attr("transform", "translate(0," + y3(0) + ")")
-            .call(d3.axisBottom(x2));
+             .attr("class", "axis axis--x")
+             .attr("transform", "translate(0," + y3(0) + ")")
+             .call(d3.axisBottom(x2));
          chart5.append("g")
-            .attr("class", "axis axis--y")
-            .call(d3.axisLeft(y3));
+             .attr("class", "axis axis--y")
+             .call(d3.axisLeft(y3));
          chart5.append("g")
-             .attr("clip-path", "url(#clip1)")
+             .attr("clip-path", "url(#clip5)")
              .append("path")
              .attr("id","path_5")
-             .datum(a3_chart)
              .attr("class", "line")
-             .attr("d", line2)
+             .attr("d", line2(data3))
              .attr("transform", null);
 
-         var s= d3.select("#rangeSlider").attr("max",data[0].length/500);
+//         var s= d3.select("#rangeSlider").attr("max",data[0].length/fft_res); //PODE DESAPARECER
 
          d3.select('#rangeSlider').on('input', function() {
              updateFFT();
@@ -302,9 +312,13 @@
                 if (t == 0) {
                     t = +b.property("min");
                 }
+
                 b.property("value", t);
+                d3.select("#time").text(n(Math.floor(t / 60) || 0)+":"+n(t % 60));
+                estimateHR();
                 updateFFT();
                 updateLineChart();
+
           }, 1000);
         });
 
@@ -312,68 +326,144 @@
           clearInterval (myTimer);
         });
 
+        function n(n){      //helper function. Used to convert to MM:SS from #seconds
+            return n > 9 ? "" + n: "0" + n;
+        }
         //updateLineChart interpolates xvalues (time on xx axis)
         function updateLineChart(){
-            var curr_pos=d3.select("#rangeSlider").property("value");
-            for (var i = 0; i < 1000; i++) {
-                a2_chart.push(Number(a2[curr_pos*i+i]));
-                a3_chart.push(Number(a3[curr_pos*i+i]));
-                a4_chart.push(Number(a4[curr_pos*i+i]));
-                a5_chart.push(Number(a5[curr_pos*i+i]));
+
+            var t = d3.transition().duration(500);
+/*
+            //JOIN new data with old elements
+           // var old = chart2.select("#path_2").attr("d",line1).datum(data2);
+
+//            //EXIT old elements not present in new data
+//            old.exit()
+//                .transition(t)
+//                .attr("d",line1)
+//                .remove()
+//            old.attr("d",line1)
+//                .transition(t)
+//                .attr("d",line1);
+//            old.enter().append("path")
+//                .attr("d",line1)
+//                .transition(t)
+//                .attr("d",line1);*/
+           for (var i = 0; i < 1000; i++) {
+                data2.push(Number(a2[curr_pos*1000+i]));
+                data3.push(Number(a3[curr_pos*1000+i]));
+                data4.push(Number(a4[curr_pos*1000+i]));
+                data5.push(Number(a5[curr_pos*1000+i]));
+
             }
+/*//            var u2 = d3.select("#path_2")
+//                .datum(data2);
+//            u2.exit()
+//                .attr("class","exit")
+//                .transition(d3.transition().duration(600))
+//                .remove();*/
+//           path
+//    .attr("d", line)
+//    .attr("transform", null)
+//  .transition()
+//    .attr("transform", "translate(" + x(-1) + ")");
+//            d3.select("#path_2").attr("transform",null);
+            console.log(data2.length);
+            d3.select("#path_2")
+                .attr("transform",null)
+                .attr("d",line1(data2))
+                .transition(t)
+                .attr("transform","translate("+x2(-1000)+",0)");
 
-            d3.select("path#path_2.line")
-                .attr("d",line1(a2_chart))
-                .attr("transform",null)
-                .transition()
-                .attr("transform","translate("+x2(-1)+")")
-                .duration(100);
-            d3.select("path#path_3.line")
-                .attr("d",line1(a3_chart))
-                .attr("transform",null)
-                .transition()
-                .attr("transform","translate("+x2(-1)+")")
-                .duration(100);
-            d3.select("path#path_4.line")
-                .attr("d",line2(a4_chart))
-                .attr("transform",null)
-                .transition()
-                .attr("transform","translate("+x2(-1)+")")
-                .duration(100);
-            d3.select("path#path_5.line")
-                .attr("d",line2(a5_chart))
-                .attr("transform",null)
-                .transition()
-                .attr("transform","translate("+x2(-1)+")")
-                .duration(100);
+/*//                .attr("transform",null)
+//                .transition()
+//                .attr("transform","translate("+x2(-1)+")")
+//                .duration(1000);*/
+            d3.select("#path_3")
+                .attr("d",line1(data3));
+/*//                .attr("transform",null)
+//                .transition()
+//                .attr("transform","translate("+x2(-1)+")")
+//                .duration(1000);*/
+            d3.select("#path_4").attr("transform",null);
 
+            d3.select("#path_4")
+                .attr("d",line2(data4))
+                .transition(t)
+                .attr("transform", "translate(" + x2(-1000) + ",0)")
+//            d3.select("#path_4")
+//                .attr("d",line2(data4));
+/*//                .attr("transform",null)
+//                .transition()
+//                .attr("transform","translate("+x2(-1)+")")
+//                .duration(1000);*/
+            d3.select("#path_5")
+                .attr("d",line2(data5));
+
+/*//                .attr("transform",null)
+//                .transition()
+//                .attr("transform","translate("+x2(-1)+")")
+//                .duration(1000);*/
             for (var i = 0; i < 1000; i++) {
-                a2_chart.shift();
-                a3_chart.shift();
-                a4_chart.shift();
-                a5_chart.shift();
+                data2.shift();
+                data3.shift();
+                data4.shift();
+                data5.shift();
             }
         }
-
-
         //updateFFT interpolates yvalues (frequencies on xx axis)
         function updateFFT(){
-            var curr_pos=d3.select("#rangeSlider").property("value");
-            for (var i = 0; i < 500; i++) {
-                a0_chart.push(Number(a0[curr_pos*i+i]));
-                a0_chart.shift();
-                a1_chart.push(Number(a1[curr_pos*i+i]));
-                a1_chart.shift();
+            curr_pos=d3.select("#rangeSlider").property("value");
+            for (var i = 0; i < fft_res-400; i++) {
+                data0.push(Number(a0[curr_pos*fft_res+i]));
+                data1.push(Number(a1[curr_pos*fft_res+i]));
             }
-
             d3.select("path#path_0.line")
                 .transition()
-                .duration(500)
-                .attr("d",line(a0_chart))
-              d3.select("path#path_1.line")
+                .duration(1000)
+                .attr("d",line(data0))
+            d3.select("path#path_1.line")
                 .transition()
-                .duration(500)
-                .attr("d",line(a1_chart))
+                .duration(1000)
+                .attr("d",line(data1))
+
+            for (var i = 0; i < fft_res; i++) {
+                data0.shift();
+                data1.shift();
+            }
+
+        }
+        function estimateHR(){
+             var queue=[];
+                curr_pos=d3.select("#rangeSlider").property("value");
+
+             if(curr_pos>4 && curr_pos< d3.select("#rangeSlider").attr("max")-4) {
+                 var in2 = a2.slice(curr_pos * 1000-5000, curr_pos * 1000+5000)
+             }else if(curr_pos<5){
+                 var in2 = a2.slice(0,10000);
+             }else if(curr_pos>d3.select("#rangeSlider").attr("max")-5){
+                 var in2 = a2.slice(d3.select("#rangeSlider").attr("max")*1000-10000, d3.select("#rangeSlider").attr("max")*1000)
+             }
+             //                var aux_queue=[];
+             //                queue = queue.map(function(x) { return x+1000;});//update time of previous peak occurance (they are now 1sec late)
+             var pos = in2.indexOf(1023); //LOOK FOR PEAK OCCURENCEs
+             while (~pos) {  //This bitwise not operator returns false if -1 and true if positive. A perfect match for indexOf which returns the index 0 ... n if found and -1 if not.
+             //                    console.log(new Date().toLocaleTimeString()+"="+pos);
+                 queue.push(pos);    //add peaks occurence QUEUE
+                 pos = in2.indexOf(1023, pos + 1); // use old position incremented to keep searching for peak occurence
+             }
+
+             var diff=0;
+             var aux_comment=0;
+             for(var i = 0; i<queue.length-1;i++){ //Add differences between each peak occurence
+                 diff+=queue[i+1]-queue[i]
+                 aux_comment+=1;
+             }
+             console.log("["+aux_comment+"]"+queue+"->"+ 60000/(diff*1.0/(queue.length-1)))
+//
+//             console.log(diff + "diff")
+//             console.log(queue.length-1 + "queue.length-1")
+             return 60000/(diff*1.0/(queue.length-1)) //averages the distances and converts this ms value to BPM HR. Had to multiply by 1.0 (float conversion) so division would work
 
         }
 
@@ -395,7 +485,9 @@
       .attr("accept", ".csv")
       .style("margin", "5px")
       .style("top", "0%")
-      .style("left", "0%")
+      .style("left", "0%%")
+      .style("width","100%")
+      .style("background-color","red%")
       .style("position", "fixed")
       .on("change", function() {
         var file = d3.event.target.files[0];

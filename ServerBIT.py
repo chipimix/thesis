@@ -24,14 +24,21 @@ import json
 import traceback
 
 import numpy as np
+import peakutils
+
 import pylab
 from twisted.internet import protocol, reactor
 
 from bitalino import *
 from txws import WebSocketFactory
 
+previous_ppg=np.zeros(10000)
+global threshold
+
+
 
 def tostring(data):
+
     """
     :param data: object to be converted into a JSON-compatible `str`
     :type data: any
@@ -39,21 +46,32 @@ def tostring(data):
 
     Converts `data` from its native data type to a JSON-compatible `str`.
     """
+    left_alpha = 0;
+    right_alpha = 0;
+    aux_data = np.zeros([2, 1000])
     dtype = type(data).__name__
     if dtype == 'ndarray':
         if pylab.shape(data) != ():
             data = data.transpose()
 
             # DIVIDO POR MIL PARA ESCALAR AO NUMERO DE PONTOS NA AMOSTRA - IS CORRECT? CONFIRMAR!!!
-            # aux_data = np.empty([2, 1000])
-            # aux_data[0, :501] = np.square(np.absolute(np.fft.rfft(data[0, :])))/1000
-            # aux_data[1, :501] = np.square(np.absolute(np.fft.rfft(data[1, :])))/1000
+            aux_data[0, :501] = np.square(np.absolute(np.fft.rfft(data[0, :])))/1000
+            aux_data[1, :501] = np.square(np.absolute(np.fft.rfft(data[1, :])))/1000
+
+            # ppg_no_baseline=peakutils.baseline(data[2])             #remove baseline from ppg signal
+            indexes = peakutils.indexes(data[2], thres=max(data[2])/1023, min_dist=500) #find its peak
+            print "max=", max(data[2]), " indexes = ", indexes
+            for elmt in indexes:                                       #set up peak value in original ppg as 1024
+                data[2][elmt]=1023
+
             csv_file = file('readings/potato.csv', 'a')
             np.savetxt(csv_file, data, delimiter=",", fmt="%.3e")
             csv_file.close()
-            data = data.tolist()  # data=list(data)
-            # aux_data=aux_data.tolist()
-            # data=data+aux_data
+            data = data.tolist()
+
+            # data=list(data)
+            aux_data=aux_data.tolist()
+            data=data+aux_data
 
         else:
             data = '"' + data.tostring() + '"'
@@ -164,7 +182,7 @@ class VSFactory(protocol.Factory):
 
 if __name__ == '__main__':
     try:
-        ip_addr, port = "127.0.0.1", 9006
+        ip_addr, port = "127.0.0.1", 9005
 
         device = None
 

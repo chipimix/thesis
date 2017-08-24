@@ -22,6 +22,8 @@
         data3 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 512),
         data4 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 32),
         data5 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 32),
+        data6 = Array.apply(null, new Array(n/2+1)).map(Number.prototype.valueOf, 0),
+        data7 = Array.apply(null, new Array(n/2+1)).map(Number.prototype.valueOf, 0),
         line,
         line2,
         x,
@@ -32,8 +34,11 @@
         chart2,
         chart3,
         chart4,
-        chart5;
-
+        chart5,
+        chart6,
+        chart7,
+        queue=[],// contains all peaks corresponding time (ORDERED, in ms) in the PPG's previous 10seconds
+        hr;
 
     //------------------------------------------------------------
 
@@ -41,7 +46,7 @@
         return string.split(subString, index).join(subString).length;
     }
     // Establish a connection to the ServerBIT
-    var ws = new WebSocket("ws://localhost:9006");
+    var ws = new WebSocket("ws://localhost:9005");
     // Define the boolean data type as used in Python
     var True = true;
     var False = false;
@@ -100,6 +105,7 @@
         this.read = function (msg) {
             // When a set of samples is read request more samples
             ws.send("device.read(1000)[:,-6:]");
+            var dimensions = [ msg.length, msg[0].length ];
 
             var in0 = msg[0];
             var in1 = msg[1];
@@ -107,54 +113,108 @@
             var in3 = msg[3];
             var in4 = msg[4];
             var in5 = msg[5];
+            var in6 = msg[6];
+            var in7 = msg[7];
 
-            createRTInfoVis(in0, in1, in2, in3, in4, in5);
+            createRTInfoVis(in0, in1, in2, in3, in4, in5,in6,in7);
+            function estimateHR(){
+                var aux_queue=[];
+                queue = queue.map(function(x) { return x+1000;});//update time of previous peak occurance (they are now 1sec late)
+                var pos = in2.indexOf(1023); //LOOK FOR PEAK OCCURENCEs
+                while (~pos) {  //This bitwise not operator returns false if -1 and true if positive. A perfect match for indexOf which returns the index 0 ... n if found and -1 if not.
+//                    console.log(new Date().toLocaleTimeString()+"="+pos);
+                    aux_queue.push(pos);    //add peaks occurence QUEUE
+                    pos = in2.indexOf(1023, pos + 1); // use old position incremented to keep searching for peak occurence
+                }
+                while(aux_queue.length>0){      //insert peak occurence in adequate order to queue
+                    queue.push(aux_queue.pop());
+                }
+                while(queue[0]>10000){  //Remove peaks more than 10seconds' old
+                    queue.shift()
+                }
+                var diff=0;
+                var aux_comment=0;
+                for(var i = 0; i<queue.length-1;i++){ //Add differences between each peak occurence
+                    diff+=queue[i]-queue[i+1]
+                    aux_comment+=1;
+                }
+                console.log("["+aux_comment+"]"+queue+"->"+ 60000/(diff*1.0/(queue.length-1)))
 
-            function createRTInfoVis(a0, a1, a2, a3, a4, a5) {
+                console.log(diff + "diff")
+                console.log(queue.length-1 + "queue.length-1")
 
-                var svg = d3.select("svg#EEG1");
-                var svg1 = d3.select("svg#EEG2");
-                if (!svg.select("g").empty()) {                        // if previous plots already exists
-                    svg.select("g").remove()                         // remove them
+
+
+                return 60000/(diff*1.0/(1.0*queue.length-1)) //averages the distances and converts this ms value to BPM HR
+
+            }
+            function createRTInfoVis(a0, a1, a2, a3, a4, a5, a6, a7) {
+                hr=estimateHR();
+                var svg0 = d3.select("svg#RAW_LEFT");
+                var svg1 = d3.select("svg#RAW_RIGHT");
+                var svg2 = d3.select("svg#PPG");
+                var svg3 = d3.select("svg#ACC_X");
+                var svg4 = d3.select("svg#ACC_Y");
+                var svg5 = d3.select("svg#ACC_Z");
+                var svg6 = d3.select("svg#EEG_LEFT");
+                var svg7 = d3.select("svg#EEG_RIGHT");
+                if (!svg0.select("g").empty()) {                        // if previous plots already exists
+                    svg0.select("g").remove()                         // remove them
                 }
                 if (!svg1.select("g").empty()) {                        //if previous plots already exists
                     svg1.select("g").remove()                         // remove them
                 }
-                if (!d3.select("svg#PPG").select("g").empty()) {                        // if previous plots already exists
-                    d3.select("svg#PPG").select("g").remove()                         // remove them
+                if (!svg2.select("g").empty()) {                        // if previous plots already exists
+                    svg2.select("g").remove()                         // remove them
                 }
-                if (!d3.select("svg#ACC_X").select("g").empty()) {                        //if previous plots already exists
-                    d3.select("svg#ACC_X").select("g").remove()                         // remove them
+                if (!svg3.select("g").empty()) {                        //if previous plots already exists
+                    svg3.select("g").remove()                         // remove them
                 }
-                if (!d3.select("svg#ACC_Y").select("g").empty()) {                        //if previous plots already exists
-                    d3.select("svg#ACC_Y").select("g").remove()                         // remove them
+                if (!svg4.select("g").empty()) {                        //if previous plots already exists
+                    svg4.select("g").remove()                         // remove them
                 }
-                if (!d3.select("svg#ACC_Z").select("g").empty()) {                        //if previous plots already exists
-                    d3.select("svg#ACC_Z").select("g").remove()                         // remove them
+                if (!svg5.select("g").empty()) {                        //if previous plots already exists
+                    svg5.select("g").remove()                         // remove them
                 }
+                if (!svg6.select("g").empty()) {                        //if previous plots already exists
+                    svg6.select("g").remove()                         // remove them
+                }
+                if (!svg7.select("g").empty()) {                        //if previous plots already exists
+                    svg7.select("g").remove()                         // remove them
+                }
+
                 //1console.log("after= " + svg.select("g").empty());
 
                 var margin = {top: 20, right: 20, bottom: 20, left: 40},
-                    width = +svg.attr("width"),
-                    height = +svg.attr("height") - margin.top - margin.bottom;
+                    width = +svg0.attr("width"),
+                    height = +svg0.attr("height") - margin.top - margin.bottom;
 
 
-                chart0 = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart0 = svg0.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
                 chart1 = svg1.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart2 = d3.select("svg#PPG").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart3 = d3.select("svg#ACC_X").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart4 = d3.select("svg#ACC_Y").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart5 = d3.select("svg#ACC_Z").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart2 = svg2.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart3 = svg3.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart4 = svg4.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart5 = svg5.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart6 = svg6.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart7 = svg7.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
                 x = d3.scaleLinear()
                     .domain([0, n - 1])
                     .range([0, width]);
+                x2 = d3.scaleLinear()
+                    .domain(0,501/*fft res*/)
+                    .range([0,width]);
                 y = d3.scaleLinear()
                     .domain([1024, 0])
                     .range([0, height]);
                 y2 = d3.scaleLinear()
                     .domain([64, 0])
                     .range([0, height]);
+                y3 = d3.scaleLinear()
+                    .domain([64, 0])
+                    .range([0, 100000000]); //FIX_ME
+
                 line = d3.line()
                     .x(function (d, i) {
                         return x(i);
@@ -170,8 +230,15 @@
                     .y(function (d, i) {
                         return y2(d);
                     });
-
-                chart0.append("defs").append("clipPath")
+                line3 = d3.line()
+                    .x(function(d, i){
+                        return x2(d);
+                    })
+                    .y(function(d, i){
+                       return y3(d);
+                    });
+                chart0.append("defs")
+                    .append("clipPath")
                     .attr("id", "clip0") //attr must differ
                     .append("rect")
                     .attr("width", width)
@@ -249,6 +316,19 @@
                     .attr("class", "axis axis--y")
                     .call(d3.axisLeft(y2));
 
+                chart6.append("defs").append("clipPath")
+                    .attr("id", "clip6")
+                    .append("rect")
+                    .attr("width", width)
+                    .attr("height", height);
+                chart6.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate(0," + y3(0) + ")")
+                    .call(d3.axisBottom(x2));
+                chart6.append("g")
+                    .attr("class", "axis axis--y")
+                    .call(d3.axisLeft(y3));
+
                 chart0.append("g")
                     .attr("clip-path", "url(#clip0)")
                     .append("path")
@@ -309,27 +389,18 @@
                     .ease(d3.easeLinear)
                     .on("start", tick5);
 
+                chart6.append("g")
+                    .attr("clip-path", "url(#clip6)")
+                    .append("path")
+                    .attr("id","path_6")
+                    .datum(data6)
+                    .attr("class", "line")
+                    .transition()
+                    .duration(500)
+                    .ease(d3.easeLinear)
+                    .on("start", tick6);
             }
-/*
-            function tick(curr_data, new_data, svg) {
-                if (new_data.length > 49) {                 // Push a new data point onto the back.
-                    for (var i = 0; i < 50; i++) {
-                        curr_data.push(new_data.shift());
-                    }
-                    svg                  // Redraw the line.
-                        .attr("d", line)
-                        .attr("transform", null);
-                    // Slide it to the left.
-                    svg
-                        .attr("transform", "translate(" + x(-1) + ",0)")
-                        .transition()
-                        .on("start", tick0);
-                    for (var i = 0; i < 50; i++) {
-                        curr_data.shift();                    // Pop the old data point off the front.
-                    }
-                }
-            }
-*/
+
 
             function tick0() {
                 if (in0.length > 49) {                 // Push a new data point onto the back.
@@ -444,6 +515,24 @@
                     }
                 }
             }
+            function tick6() {
+                if (in6.length > 49) {                 // Push a new data point onto the back.
+                    for (var i = 0; i < 50; i++) {
+                        data6.push(in6.shift());
+                    }
+                    d3.select(this)                     // Redraw the line.
+                        .attr("d", line2)
+                        .attr("transform", null);
+                    // Slide it to the left.
+                    d3.active(this)
+                        .attr("transform", "translate(" + x(-1) + ",0)")
+                        .transition()
+                        .on("start", tick6);
+                    for (var i = 0; i < 50; i++) {
+                        data6.shift();                    // Pop the old data point off the front.
+                    }
+                }
+            }
 
         };
 
@@ -467,19 +556,19 @@
 
 </script>
 <body>
-<section style="width:90%;height:33%;margin:auto; ;">
-    <svg id="EEG1" width="600" height="263"></svg>
-    <svg id="EEG2" width="600" height="263"></svg>
-    <!--  <div id="RAW_L" style="width: 50%;height: 100%;float: left;"></div>
-      <div id="RAW_R" style="margin-left: 50%; height: 100%;"></div> -->
-</section> <!--
-        <section style="width:100%;height:30%;margin:auto; padding:10px;">
-            <div id="EEG_L" style="width: 50%;height: 100%;float: left;"></div>
-            <div id="EEG_R" style="margin-left: 50%; height: 100%;"></div>
-        </section> -->
-
+<section style="width:90%;height:33%;margin:auto; ">
+    <svg id="RAW_LEFT" width="600" height="263"></svg>
+    <svg id="RAW_RIGHT" width="600" height="263"></svg>
+</section>
 <section style="width:90%;height:33%;margin:auto ">
+    <svg id="EEG_LEFT" width="600" height="263"></svg>
+    <svg id="EEG_RIGHT" width="600" height="263"></svg>
+</section>
+<section style="width:90%;height:33%;margin:auto ">
+    <svg id="PPG_FFT" width="600" height="263"></svg>
     <svg id="PPG" width="600" height="263"></svg>
+</section>
+<section style="width:90%;height:33%;margin:auto ">
     <svg id="ACC_X" width="600" height="263"></svg>
 </section>
 <section style="width:90%;height:33%;margin:auto;">
@@ -487,6 +576,5 @@
     <svg id="ACC_Z" width="600" height="263"></svg>
 </section>
 
-<svg id="BAR_CHART" style="width:400px;height:300px"></svg>
 </body>
 </html>

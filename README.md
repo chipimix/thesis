@@ -1,16 +1,22 @@
 # OpenSignals Barebone
 
-The ServerBIT is a barbone example application based on the Twisted event-driven networking engine, and designed to demonstrate the OpenSignals client-server architecture. You can use and modify the source code under the terms of the GPL licence.
+The ServerBIT is a barbone example application based on the Twisted event-driven networking engine.
+Designed to demonstrate a client-server architecture.
+You can use and modify the source code under the terms of the GPL licence.
 
-This architecture is based on an asynchronous message passing protocol, in which the server and the client communicate using JSON-formatted strings. Although this code is primarily used for BITalino, it is completely general purpose.
+This architecture is based on an asynchronous message passing protocol.
+The server and the client communicate using JSON-formatted strings.
+Although this code is primarily used for BITalino, it is completely general purpose.
 
-ServerBIT receives Python instructions as string-based requests from a client, evaluates them, and replies with the same instruction having the evaluation results as input arguments.
+ServerBIT receives Python instructions as string-based requests from a client.
+ServerBIT evaluates them, and replies with the same instruction having the evaluation results as input arguments.
 
-ClientBIT is an example HTML/JS that connects to ServerBIT and opens a connection to a specified BITalino device to acquire data from A3 (ACC data as of early-2014 units) and draw it on the browser in realtime.
+ClientBIT is an example HTML/JS that connects to ServerBIT and opens a connection to a specified BITalino device to acquire data from A3
+(ACC data as of early-2014 units) and draw it on the browser in realtime.
 
 In our example, ClientBIT is also prepared to evaluate the strings received from the server as JS instructions.
 
-INCOMPLETE
+INCOMPLETE TO_DO
 
 ## Prerequisites
 
