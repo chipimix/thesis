@@ -36,8 +36,8 @@
     <section style="width:100%;height:30%;margin:auto; ;">
         <svg id="EEG1" width="740" height="263"></svg>
         <svg id="EEG2" width="740" height="263"></svg>
-        <!--  <div id="RAW_L" style="width: 50%;height: 100%;float: left;"></div>
-          <div id="RAW_R" style="margin-left: 50%; height: 100%;"></div> -->
+<!--        <div id="RAW_L" style="width: 50%;height: 100%;float: left;"></div>
+        <div id="RAW_R" style="margin-left: 50%; height: 100%;"></div> -->
     </section>
 
     <section style="width:100%;height:30%;margin:auto ">
@@ -45,9 +45,7 @@
         <svg id="VALNC" width="740" height="263"></svg>
     </section>
     <section style="width:100%;height:30%;margin:auto;">
-        <svg id="FOCUS" width="740" height="263">
-
-        </svg>
+        <svg id="FOCUS" width="740" height="263"></svg>
         <svg id="MEDI" width="740" height="263"></svg>
     </section>
 </body>
@@ -55,20 +53,21 @@
 <script>
     var sample_rate = 1000;
     var fft_res = 501;
-    var a0=[],          //channels with complete recording data
-        a1=[],
-        a2=[]/*,
-        a3=[],
-        a4=[],
-        a5=[]*/;
-    var line,line1,line2;
-    var y,y2,y3,x,x2;
+    var a0=[],          //channels with clean LEFT EEG recording data
+        a1=[],          //channels with clean RIGHT EEG recording data
+        a2=[],          //channels with processed PPG recording data
+        a3=[],          //valence array
+        a4=[],          //engagement array
+        a5=[],          //meditation array
+        a6=[];          //Heart Rate array
+    var line,line1,line2,line3,line4;
+    var y,y2,y3,y4,y5,x,x2,x3;
     var data0 = Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 0),
         data1=Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 0),
         data2=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
-        data3=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
-        data4=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 32),
-        data5=Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 32);
+        data3=[],
+        data4=[],
+        data5=[];
      var chart0,
         chart1,
         chart2,
@@ -76,7 +75,12 @@
         chart4,
         chart5;
      var curr_pos;
-
+     var emo_valnc_max=0, //NOTA, AO ATRIBUIR VALOR ZERO ESTOU A ASSUMIR QUE EXISTIRAO VALORES POSITIVOS & NEGATIVOS!!!!
+         emo_valnc_min=0,
+         engagement_max=0,
+         engagement_min=0,
+         meditation_max=0,
+         meditation_min=0;
     var rowToHtml = function( row ) {
         var result = "";
         for (key in row) {
@@ -101,7 +105,65 @@
              });
          });
 //---------------------File NOW uploaded into browser-------------------------------------------------------------
-        //select corresponding div to each new svg image
+         //Set EEGs and PPG metrics to a0..a2 array
+         a0=data[0]; //EEG_LEFT
+         a1=data[1]; //EEG_RIGHT
+         a2=data[2]; //PROCESSED PPG
+
+//         //Determine theta, alpha and beta brain waves:
+//         var left_theta_freqs=[];
+//         var right_theta_freqs=[];
+//         var left_alpha_freqs=[];
+//         var right_alpha_freqs=[];
+//         var left_beta_freqs=[];
+//         var right_beta_freqs=[];
+
+         //extract theta, alpha & frequencies.
+         for(var i = 4;i<data[0].length;i+=fft_res){// fft_res=501 frequencies. Each one corresponds to 1second (0-500Hz)
+
+             //determine left theta wave spike
+             var left_theta_spike=Math.max(data[0][i],data[0][i+1],data[0][i+2],data[0][i+3]); //4Hz,5Hz,6Hz,7Hz
+             //determine right theta wave spike
+             var right_theta_spike=Math.max(data[1][i],data[1][i+1],data[1][i+2],data[1][i+3]); //4Hz,5Hz,6Hz,7Hz
+             //determine left theta wave spike //8Hz,9Hz,10Hz,11Hz,12Hz,13Hz
+             var left_alpha_spike=Math.max(data[0][i+4],data[0][i+5],data[0][i+6],data[0][i+7],data[0][i+8],data[0][i+9]);
+             //determine right theta wave spike //8Hz,9Hz,10Hz,11Hz,12Hz,13Hz
+             var right_alpha_spike=Math.max(data[1][i+4],data[1][i+5],data[1][i+6],data[1][i+7],data[0][i+8],data[0][i+9]);
+             //determine left theta wave spike
+             var left_beta_spike=Math.max(data[0][i+13],data[0][i+14],data[0][i+15],data[0][i+16]);//17Hz,18Hz,19Hz,20Hz
+             //determine right theta wave spike
+             var right_beta_spike=Math.max(data[1][i+13],data[1][i+14],data[1][i+15],data[1][i+16]);//17Hz,18Hz,19Hz,20Hz
+
+             //Add left and right spikes for theta, alpha and beta brain waves to the corresponding frequencies' array
+//             left_theta_freqs.push(left_theta_spike);
+//             right_theta_freqs.push(right_theta_spike);
+//             left_alpha_freqs.push(left_alpha_spike);
+//             right_alpha_freqs.push(right_alpha_spike);
+//             left_beta_freqs.push(left_beta_spike);
+//             right_beta_freqs.push(right_beta_spike);
+
+             var avg_theta_freq=0.5*left_theta_spike+0.5*right_theta_spike;
+             var avg_alpha_freq=0.5*left_alpha_spike+0.5*right_alpha_spike;
+             var avg_beta_freq=0.5*left_beta_spike+0.5*right_beta_spike;
+             var valence =right_alpha_spike-left_alpha_spike; //emotional valence formula
+             var engagement = avg_beta_freq/(avg_alpha_freq+avg_theta_freq); //engagement formula
+             var meditation = 0.5*(avg_theta_freq+avg_alpha_freq); //meditation formula
+             //determine max and min; used for linear scaling of domain
+             if(emo_valnc_max<valence){emo_valnc_max=valence;}
+             if(emo_valnc_min>valence){ emo_valnc_min=valence;}
+             if(engagement_max<engagement){ engagement_max=engagement; }
+             if(engagement_min>engagement){  engagement_min=engagement; }
+             if(meditation_max<meditation){ meditation_max=meditation; }
+             if(meditation_min>meditation){ meditation_min=meditation; }
+
+             a3.push(valence); //store emotional valence in arraylist's corresponding second of the recording session
+             a4.push(engagement); //store engagement metric in arraylist's corresponding second of the recording session
+             a5.push(meditation); //store meditation metric in arraylist's corresponding second of the recording session
+         }
+         //Determine ENGAGEMENT Derivative Metric (extracted from EEGs)
+
+         //Scalable Vector Graphic's code (graphical interface) below:
+         //select corresponding div to each new svg image
          var svg0 = d3.select("svg#EEG1");
          var svg1 = d3.select("svg#EEG2");
          var svg2 = d3.select("svg#PPG");
@@ -109,23 +171,12 @@
          var svg4 = d3.select("svg#FOCUS");
          var svg5 = d3.select("svg#MEDI");
          //remove any previously drawn svg images (needed in case of consecutive csv files opened in same session)
-        if (!svg0.select("g").empty()) {svg.select("g").remove()}
-        if (!svg1.select("g").empty()) {svg1.select("g").remove()}
-        if (!svg2.select("g").empty()) {d3.select("svg#PPG").select("g").remove()}
-        if (!svg3.select("g").empty()) {d3.select("svg#VALNC").select("g").remove()}
-        if (!svg4.select("g").empty()) {d3.select("svg#FOCUS").select("g").remove()}
-        if (!svg5.select("g").empty()) {d3.select("svg#MEDI").select("g").remove()}
-
-//         console.log(data);
-         //d3.select("div#preview").html("<b>First row:</b><br/>" + rowToHtml( data[0] ));
-         //set current second's recieved data
-         a0=data[0];
-         a1=data[1];
-         a2=data[2];
-         a3=data[3];
-         a4=data[4];
-         a5=data[5];
-
+         if (!svg0.select("g").empty()) {svg0.select("g").remove()}
+         if (!svg1.select("g").empty()) {svg1.select("g").remove()}
+         if (!svg2.select("g").empty()) {svg2.select("g").remove()}
+         if (!svg3.select("g").empty()) {svg3.select("g").remove()}
+         if (!svg4.select("g").empty()) {svg4.select("g").remove()}
+         if (!svg5.select("g").empty()) {svg5.select("g").remove()}
          //set up margins for each graph
          var margin = {top: 30, right: 30, bottom: 30, left: 50}, width = +svg0.attr("width"), height = +svg0.attr("height") - margin.top - margin.bottom;
          //set up title of each svg image
@@ -135,12 +186,12 @@
              .style("font-size", "16px").style("text-decoration", "underline").text("Right Electroencephalogram");
          svg2.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
              .style("font-size", "16px").style("text-decoration", "underline").text("Photoplethysmogram");
-         svg3.append("text").attr("x", (width / 2)).attr("y", 0 - (margin.top / 2)).attr("text-anchor", "middle")
-             .style("font-size", "16px").style("text-decoration", "underline").text("ACC X");
-         svg4.append("text").attr("x", (width / 2)).attr("y", 0 - (margin.top / 2)).attr("text-anchor", "middle")
-             .style("font-size", "16px").style("text-decoration", "underline").text("ACC Y");
-         svg5.append("text").attr("x", (width / 2)).attr("y", 0 - (margin.top / 2)).attr("text-anchor", "middle")
-             .style("font-size", "16px").style("text-decoration", "underline").text("ACC Z");
+         svg3.append("text").attr("x", "50%").attr("y","15%").attr("text-anchor", "middle")
+             .style("font-size", "16px").style("text-decoration", "underline").text("Emotional Valence");
+         svg4.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+             .style("font-size", "16px").style("text-decoration", "underline").text("Engagement");
+         svg5.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+             .style("font-size", "16px").style("text-decoration", "underline").text("Meditation");
 
          //translate each svg image so we can have space for the axis
          chart0= svg0.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -150,34 +201,35 @@
          chart4= svg4.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
          chart5= svg5.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-         var s= d3.select("#rangeSlider").attr("max",data[0].length/fft_res);
-
+         //Now that we know the recording's duration we can set the slider's max
+         d3.select("#rangeSlider").attr("max",data[0].length/fft_res);
+         //Determine current position in slider (It's zero)
          curr_pos=d3.select("#rangeSlider").property("value");
+         //Create a quantitative linear scale for each axis's distinct domain:
+         x = d3.scaleLinear().domain([1, fft_res-1]).range([0, width-margin.left*1.2]); //used for EEGs
+         x2 = d3.scaleLinear().domain([0, sample_rate - 1]).range([0, width-margin.left*1.2]); //used for PPG
+         //used for EMOTIONAL VALENCE, ENGAGEMENT & MEDITATION:
+         x3 = d3.scaleLinear().domain([0, curr_pos+1]).range([0, width-margin.left*1.2]);
 
-         x = d3.scaleLinear().domain([0, fft_res-400-1]).range([0, width-margin.left*1.2]);
-         x2 = d3.scaleLinear().domain([0, sample_rate - 1]).range([0, width-margin.left*1.2]);
+/*
+         var logScale = d3.scaleLog()
+                            .domain([10, 100000])
+                            .range([0, 700]);
+*/
 
-         y = d3.scaleLinear().domain([1000000, 0]).range([0, height-margin.top]);
-         y2 = d3.scaleLinear().domain([1024, 0]).range([0, height-margin.top]);
-         y3 = d3.scaleLinear().domain([64, 0]).range([0, height-margin.top]);
+         y = d3.scaleLinear().domain([100000, 0]).range([0, height-margin.top]); //used for EEGs
+         y2 = d3.scaleLinear().domain([1024, 0]).range([0, height-margin.top]); //used for PPG
+         y3 = d3.scaleLinear().domain([emo_valnc_max, emo_valnc_min]).range([0, height-margin.top]); //used for VALENCE
+         y4 = d3.scaleLinear().domain([engagement_max, engagement_min]).range([0, height-margin.top]); //used for ENGAGEMENT
+         y5 = d3.scaleLinear().domain([meditation_max, meditation_min]).range([0, height-margin.top]); //used for MEDITATION
 
          line = d3.line()
-             .x(function (d, i) {
-                 return x(i);
-             })
-             .y(function (d, i) {
-                 return y(d);
-             });
+             .x(function (d, i) {return x(i);})
+             .y(function (d, i) {return y(d);});
          line1 = d3.line()
              .x(function (d, i) { return x2(i);})
              .y(function (d, i) { return y2(d);});
-         line2 = d3.line()
-             .x(function (d, i) {
-                 return x2(i);
-             })
-             .y(function (d, i) {
-                 return y3(d);
-             });
+
 
          chart0.append("defs").append("clipPath")
              .attr("id", "clip0") //attr must differ
@@ -218,23 +270,27 @@
               .attr("class", "line")
               .attr("d", line(data1))
               .attr("transform", null);
+
          chart2.append("defs").append("clipPath")
-              .attr("id", "clip2")
-              .append("rect")
-              .attr("width", width)
-              .attr("height", height);
+            .attr("id", "clip2")
+            .append("rect")
+            .attr("width", width)
+            .attr("height", height);
          chart2.append("g")
-              .attr("class", "axis axis--x")
-              .attr("transform", "translate(0," + y2(0) + ")")
-              .call(d3.axisBottom(x2));
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + y2(0) + ")")
+            .call(d3.axisBottom(x2));
          chart2.append("g")
-              .attr("class", "axis axis--y")
-              .call(d3.axisLeft(y2));
-         chart2.append("path")
-              .attr("id","path_2")
-              .attr("class", "line")
-              .attr("d", line1(data2))
-              .attr("transform",null);
+            .attr("class", "axis axis--y")
+            .call(d3.axisLeft(y2));
+         chart2.append("g")
+             .attr("clip-path", "url(#clip1)")
+             .append("path")
+             .attr("id","path_2")
+             .datum(data2)
+             .attr("class", "line")
+             .attr("d", line1)
+             .attr("transform", null);
 
          chart3.append("defs").append("clipPath")
              .attr("id", "clip3")
@@ -243,17 +299,17 @@
              .attr("height", height);
          chart3.append("g")
              .attr("class", "axis axis--x")
-             .attr("transform", "translate(0," + y2(0) + ")")
-             .call(d3.axisBottom(x2));
+             .attr("transform", "translate(0," + y3(0) + ")")
+             .call(d3.axisBottom(x2).ticks(0));
          chart3.append("g")
              .attr("class", "axis axis--y")
-             .call(d3.axisLeft(y2));
+             .call(d3.axisLeft(y3));
          chart3.append("g")
              .attr("clip-path", "url(#clip3)")
              .append("path")
              .attr("id","path_3")
              .attr("class", "line")
-             .attr("d", line1(data3))
+             .attr("d", line1(data2))
              .attr("transform", null);
 
          chart4.append("defs").append("clipPath")
@@ -263,17 +319,17 @@
              .attr("height", height);
          chart4.append("g")
              .attr("class", "axis axis--x")
-             .attr("transform", "translate(0," + y3(0) + ")")
-             .call(d3.axisBottom(x2));
+             .attr("transform", "translate(0," + y4(0) + ")")
+             .call(d3.axisBottom(x2).ticks(0));
          chart4.append("g")
              .attr("class", "axis axis--y")
-             .call(d3.axisLeft(y3));
+             .call(d3.axisLeft(y4));
          chart4.append("g")
              .attr("clip-path", "url(#clip4)")
              .append("path")
              .attr("id","path_4")
              .attr("class", "line")
-             .attr("d", line2(data3))
+             .attr("d", line1(data2))
              .attr("transform", null);
 
          chart5.append("defs").append("clipPath")
@@ -283,22 +339,23 @@
              .attr("height", height);
          chart5.append("g")
              .attr("class", "axis axis--x")
-             .attr("transform", "translate(0," + y3(0) + ")")
-             .call(d3.axisBottom(x2));
+             .attr("transform", "translate(0," + y5(0) + ")")
+             .call(d3.axisBottom(x2).ticks(0));
          chart5.append("g")
              .attr("class", "axis axis--y")
-             .call(d3.axisLeft(y3));
+             .call(d3.axisLeft(y5));
          chart5.append("g")
              .attr("clip-path", "url(#clip5)")
              .append("path")
              .attr("id","path_5")
              .attr("class", "line")
-             .attr("d", line2(data3))
+             .attr("d", line1(data2))
              .attr("transform", null);
 
 //         var s= d3.select("#rangeSlider").attr("max",data[0].length/fft_res); //PODE DESAPARECER
 
          d3.select('#rangeSlider').on('input', function() {
+             curr_pos=d3.select("#rangeSlider").property("value");
              updateFFT();
              updateLineChart();
         });
@@ -315,6 +372,8 @@
 
                 b.property("value", t);
                 d3.select("#time").text(n(Math.floor(t / 60) || 0)+":"+n(t % 60));
+                curr_pos=d3.select("#rangeSlider").property("value");
+
                 estimateHR();
                 updateFFT();
                 updateLineChart();
@@ -331,84 +390,50 @@
         }
         //updateLineChart interpolates xvalues (time on xx axis)
         function updateLineChart(){
-
             var t = d3.transition().duration(500);
-/*
-            //JOIN new data with old elements
-           // var old = chart2.select("#path_2").attr("d",line1).datum(data2);
 
-//            //EXIT old elements not present in new data
-//            old.exit()
-//                .transition(t)
-//                .attr("d",line1)
-//                .remove()
-//            old.attr("d",line1)
-//                .transition(t)
-//                .attr("d",line1);
-//            old.enter().append("path")
-//                .attr("d",line1)
-//                .transition(t)
-//                .attr("d",line1);*/
+            //update xx domain of Valence, Engagement & Meditation
+            x3 = d3.scaleLinear().domain([0, curr_pos]).range([0, width-margin.left*1.2]);
+            line2 = d3.line()
+             .x(function (d, i) {return x3(i);})
+             .y(function (d, i) {return y3(d);})
+             .curve(d3.curveBasis);
+            line3 = d3.line()
+             .x(function (d, i) {return x3(i);})
+             .y(function (d, i) {return y4(d);})
+             .curve(d3.curveBasis);
+            line4 = d3.line()
+             .x(function (d, i) {return x3(i);})
+             .y(function (d, i) {return y5(d);})
+             .curve(d3.curveBasis);
+
            for (var i = 0; i < 1000; i++) {
                 data2.push(Number(a2[curr_pos*1000+i]));
-                data3.push(Number(a3[curr_pos*1000+i]));
-                data4.push(Number(a4[curr_pos*1000+i]));
-                data5.push(Number(a5[curr_pos*1000+i]));
-
             }
-/*//            var u2 = d3.select("#path_2")
-//                .datum(data2);
-//            u2.exit()
-//                .attr("class","exit")
-//                .transition(d3.transition().duration(600))
-//                .remove();*/
-//           path
-//    .attr("d", line)
-//    .attr("transform", null)
-//  .transition()
-//    .attr("transform", "translate(" + x(-1) + ")");
-//            d3.select("#path_2").attr("transform",null);
-            console.log(data2.length);
-            d3.select("#path_2")
-                .attr("transform",null)
-                .attr("d",line1(data2))
-                .transition(t)
-                .attr("transform","translate("+x2(-1000)+",0)");
 
-/*//                .attr("transform",null)
-//                .transition()
-//                .attr("transform","translate("+x2(-1)+")")
-//                .duration(1000);*/
+            d3.select("path#path_2.line")
+                .attr("d",line1(data2))
+                .attr("transform",null)
+                .transition()
+                .attr("transform","translate("+x2(-1000)+",0)")
+                .duration(500);
+
             d3.select("#path_3")
-                .attr("d",line1(data3));
-/*//                .attr("transform",null)
-//                .transition()
-//                .attr("transform","translate("+x2(-1)+")")
-//                .duration(1000);*/
-            d3.select("#path_4").attr("transform",null);
+                .attr("d",line2(a3))
+                .transition()
+                .duration(900);
 
             d3.select("#path_4")
-                .attr("d",line2(data4))
-                .transition(t)
-                .attr("transform", "translate(" + x2(-1000) + ",0)")
-//            d3.select("#path_4")
-//                .attr("d",line2(data4));
-/*//                .attr("transform",null)
-//                .transition()
-//                .attr("transform","translate("+x2(-1)+")")
-//                .duration(1000);*/
+                .attr("d",line3(a4))
+                .transition()
+                .duration(900);
             d3.select("#path_5")
-                .attr("d",line2(data5));
+                .attr("d",line4(a5))
+                .transition()
+                .duration(900);
 
-/*//                .attr("transform",null)
-//                .transition()
-//                .attr("transform","translate("+x2(-1)+")")
-//                .duration(1000);*/
             for (var i = 0; i < 1000; i++) {
                 data2.shift();
-                data3.shift();
-                data4.shift();
-                data5.shift();
             }
         }
         //updateFFT interpolates yvalues (frequencies on xx axis)
@@ -444,11 +469,12 @@
              }else if(curr_pos>d3.select("#rangeSlider").attr("max")-5){
                  var in2 = a2.slice(d3.select("#rangeSlider").attr("max")*1000-10000, d3.select("#rangeSlider").attr("max")*1000)
              }
-             //                var aux_queue=[];
-             //                queue = queue.map(function(x) { return x+1000;});//update time of previous peak occurance (they are now 1sec late)
+
              var pos = in2.indexOf(1023); //LOOK FOR PEAK OCCURENCEs
-             while (~pos) {  //This bitwise not operator returns false if -1 and true if positive. A perfect match for indexOf which returns the index 0 ... n if found and -1 if not.
-             //                    console.log(new Date().toLocaleTimeString()+"="+pos);
+            //The bitwise not(~) operator returns false if -1 and true if positive.
+            // A perfect match for indexOf which returns the index 0 ... n if found and -1 if not.
+             while (~pos) {
+//                    console.log(new Date().toLocaleTimeString()+"="+pos);
                  queue.push(pos);    //add peaks occurence QUEUE
                  pos = in2.indexOf(1023, pos + 1); // use old position incremented to keep searching for peak occurence
              }
@@ -459,12 +485,9 @@
                  diff+=queue[i+1]-queue[i]
                  aux_comment+=1;
              }
-             console.log("["+aux_comment+"]"+queue+"->"+ 60000/(diff*1.0/(queue.length-1)))
-//
-//             console.log(diff + "diff")
-//             console.log(queue.length-1 + "queue.length-1")
-             return 60000/(diff*1.0/(queue.length-1)) //averages the distances and converts this ms value to BPM HR. Had to multiply by 1.0 (float conversion) so division would work
-
+             console.log("HR= "+60000/(diff*1.0/(queue.length-1)));
+            //averages the distances and converts this ms value to BPM HR
+             return 60000/(diff*1.0/(queue.length-1))// Had to multiply by 1.0 (float conversion) so division would work
         }
 
 

@@ -15,15 +15,17 @@
 <script language="javascript" type="text/javascript" src="jquery.js"></script>
 
 <script type="text/javascript">
-    var n = 1000,
-        data0 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 512),
-        data1 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 512),
-        data2 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 512),
-        data3 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 512),
-        data4 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 32),
-        data5 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 32),
+    var sample_rate = 1000,
+        fft_res=501,
+
+        data0 = Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512), //RAW_L
+        data1 = Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512), //RAW_R
+        data2 = Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 0), //EEG_L
+        data3 = Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 0), //EEG_R
+        data4 = Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512), //PPG
+/*        data5 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 32),
         data6 = Array.apply(null, new Array(n/2+1)).map(Number.prototype.valueOf, 0),
-        data7 = Array.apply(null, new Array(n/2+1)).map(Number.prototype.valueOf, 0),
+        data7 = Array.apply(null, new Array(n/2+1)).map(Number.prototype.valueOf, 0),*/
         line,
         line2,
         x,
@@ -107,14 +109,16 @@
             ws.send("device.read(1000)[:,-6:]");
             var dimensions = [ msg.length, msg[0].length ];
 
-            var in0 = msg[0];
-            var in1 = msg[1];
-            var in2 = msg[2];
-            var in3 = msg[3];
-            var in4 = msg[4];
-            var in5 = msg[5];
-            var in6 = msg[6];
-            var in7 = msg[7];
+            var in0 = msg[0]; //RAW_LEFT
+            var in1 = msg[1]; //RAW_RIGHT
+            var in2 = msg[2]; //PPG
+            var in3 = msg[3]; //AAC_X
+            var in4 = msg[4]; //AAC_Y
+            var in5 = msg[5]; //AAC_Z
+            var in6 = msg[6]; //EEG_LEFT
+            var in7 = msg[7]; //EEG_RIGHT
+            data2=msg[6];
+            data3=msg[7];
 
             createRTInfoVis(in0, in1, in2, in3, in4, in5,in6,in7);
             function estimateHR(){
@@ -138,10 +142,10 @@
                     diff+=queue[i]-queue[i+1]
                     aux_comment+=1;
                 }
-                console.log("["+aux_comment+"]"+queue+"->"+ 60000/(diff*1.0/(queue.length-1)))
+/*                console.log("["+aux_comment+"]"+queue+"->"+ 60000/(diff*1.0/(queue.length-1)))
 
                 console.log(diff + "diff")
-                console.log(queue.length-1 + "queue.length-1")
+                console.log(queue.length-1 + "queue.length-1")*/
 
 
 
@@ -152,35 +156,28 @@
                 hr=estimateHR();
                 var svg0 = d3.select("svg#RAW_LEFT");
                 var svg1 = d3.select("svg#RAW_RIGHT");
-                var svg2 = d3.select("svg#PPG");
-                var svg3 = d3.select("svg#ACC_X");
-                var svg4 = d3.select("svg#ACC_Y");
-                var svg5 = d3.select("svg#ACC_Z");
-                var svg6 = d3.select("svg#EEG_LEFT");
-                var svg7 = d3.select("svg#EEG_RIGHT");
-                if (!svg0.select("g").empty()) {                        // if previous plots already exists
-                    svg0.select("g").remove()                         // remove them
+                var svg2 = d3.select("svg#EEG_LEFT");
+                var svg3 = d3.select("svg#EEG_RIGHT");
+                var svg4 = d3.select("svg#PPG");
+                var svg_ACC_X = d3.select("svg#ACC_X");
+                var svg_AAC_Y = d3.select("svg#ACC_Y");
+                var svg_AAC_Z = d3.select("svg#ACC_Z");
+
+                // if previous plots already exists, remove them
+                if (!svg0.select("g").empty()) { svg0.select("g").remove(); }
+                if (!svg1.select("g").empty()) { svg1.select("g").remove(); }
+                if (!svg2.select("g").empty()) { svg2.select("g").remove(); }
+                if (!svg3.select("g").empty()) { svg3.select("g").remove(); }
+                if (!svg4.select("g").empty()) { svg4.select("g").remove(); }
+
+                if (!svg_ACC_X.select("g").empty()) {                        //if previous plots already exists
+                    svg_ACC_X.select("g").remove()                         // remove them
                 }
-                if (!svg1.select("g").empty()) {                        //if previous plots already exists
-                    svg1.select("g").remove()                         // remove them
+                if (!svg_AAC_Y.select("g").empty()) {                        //if previous plots already exists
+                    svg_AAC_Y.select("g").remove()                         // remove them
                 }
-                if (!svg2.select("g").empty()) {                        // if previous plots already exists
-                    svg2.select("g").remove()                         // remove them
-                }
-                if (!svg3.select("g").empty()) {                        //if previous plots already exists
-                    svg3.select("g").remove()                         // remove them
-                }
-                if (!svg4.select("g").empty()) {                        //if previous plots already exists
-                    svg4.select("g").remove()                         // remove them
-                }
-                if (!svg5.select("g").empty()) {                        //if previous plots already exists
-                    svg5.select("g").remove()                         // remove them
-                }
-                if (!svg6.select("g").empty()) {                        //if previous plots already exists
-                    svg6.select("g").remove()                         // remove them
-                }
-                if (!svg7.select("g").empty()) {                        //if previous plots already exists
-                    svg7.select("g").remove()                         // remove them
+                if (!svg_AAC_Z.select("g").empty()) {                        //if previous plots already exists
+                    svg_AAC_Z.select("g").remove()                         // remove them
                 }
 
                 //1console.log("after= " + svg.select("g").empty());
@@ -189,31 +186,27 @@
                     width = +svg0.attr("width"),
                     height = +svg0.attr("height") - margin.top - margin.bottom;
 
-
                 chart0 = svg0.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
                 chart1 = svg1.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
                 chart2 = svg2.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
                 chart3 = svg3.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
                 chart4 = svg4.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart5 = svg5.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart6 = svg6.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart7 = svg7.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart5 = svg_ACC_X.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart6 = svg_AAC_Y.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart7 = svg_AAC_Z.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-                x = d3.scaleLinear()
-                    .domain([0, n - 1])
-                    .range([0, width]);
-                x2 = d3.scaleLinear()
-                    .domain(0,501/*fft res*/)
-                    .range([0,width]);
+                x = d3.scaleLinear().domain([1, sample_rate-1]).range([0, width-margin.left*1.2]); //used for PPG & RAW INPUT
+                x2 = d3.scaleLinear().domain([0, fft_res - 400 - 1]).range([0, width-margin.left*1.2]); //used for EEGs
+
                 y = d3.scaleLinear()
                     .domain([1024, 0])
                     .range([0, height]);
                 y2 = d3.scaleLinear()
-                    .domain([64, 0])
+                    .domain([100000, 0])
                     .range([0, height]);
                 y3 = d3.scaleLinear()
                     .domain([64, 0])
-                    .range([0, 100000000]); //FIX_ME
+                    .range([0, height]);
 
                 line = d3.line()
                     .x(function (d, i) {
@@ -225,7 +218,7 @@
 
                 line2 = d3.line()
                     .x(function (d, i) {
-                        return x(i);
+                        return x2(i);
                     })
                     .y(function (d, i) {
                         return y2(d);
@@ -271,11 +264,11 @@
                     .attr("height", height);
                 chart2.append("g")
                     .attr("class", "axis axis--x")
-                    .attr("transform", "translate(0," + y(0) + ")")
-                    .call(d3.axisBottom(x));
+                    .attr("transform", "translate(0," + y2(0) + ")")
+                    .call(d3.axisBottom(x2));
                 chart2.append("g")
                     .attr("class", "axis axis--y")
-                    .call(d3.axisLeft(y));
+                    .call(d3.axisLeft(y2));
 
                 chart3.append("defs").append("clipPath")
                     .attr("id", "clip3")
@@ -285,7 +278,7 @@
                 chart3.append("g")
                     .attr("class", "axis axis--x")
                     .attr("transform", "translate(0," + y2(0) + ")")
-                    .call(d3.axisBottom(x));
+                    .call(d3.axisBottom(x2));
                 chart3.append("g")
                     .attr("class", "axis axis--y")
                     .call(d3.axisLeft(y2));
@@ -297,11 +290,12 @@
                     .attr("height", height);
                 chart4.append("g")
                     .attr("class", "axis axis--x")
-                    .attr("transform", "translate(0," + y2(0) + ")")
+                    .attr("transform", "translate(0," + y(0) + ")")
                     .call(d3.axisBottom(x));
                 chart4.append("g")
                     .attr("class", "axis axis--y")
-                    .call(d3.axisLeft(y2));
+                    .call(d3.axisLeft(y));
+/*
 
                 chart5.append("defs").append("clipPath")
                     .attr("id", "clip5")
@@ -328,6 +322,7 @@
                 chart6.append("g")
                     .attr("class", "axis axis--y")
                     .call(d3.axisLeft(y3));
+*/
 
                 chart0.append("g")
                     .attr("clip-path", "url(#clip0)")
@@ -348,26 +343,20 @@
                     .duration(50)
                     .ease(d3.easeLinear)
                     .on("start", tick1);
-
                 chart2.append("g")
                     .attr("clip-path", "url(#clip2)")
                     .append("path")
                     .datum(data2)
                     .attr("class", "line")
-                    .transition()
-                    .duration(50)
-                    .ease(d3.easeLinear)
-                    .on("start", tick2);
+                    .attr("d", line2);
 
                 chart3.append("g")
                     .attr("clip-path", "url(#clip3)")
                     .append("path")
                     .datum(data3)
                     .attr("class", "line")
-                    .transition()
-                    .duration(50)
-                    .ease(d3.easeLinear)
-                    .on("start", tick3);
+                    .attr("d", line2);
+
 
                 chart4.append("g")
                     .attr("clip-path", "url(#clip4)")
@@ -379,6 +368,7 @@
                     .ease(d3.easeLinear)
                     .on("start", tick4);
 
+/*
                 chart5.append("g")
                     .attr("clip-path", "url(#clip5)")
                     .append("path")
@@ -399,6 +389,7 @@
                     .duration(500)
                     .ease(d3.easeLinear)
                     .on("start", tick6);
+*/
             }
 
 
@@ -440,6 +431,7 @@
                 }
             }
 
+/*
             function tick2() {
                 if (in2.length > 49) {                 // Push a new data point onto the back.
                     for (var i = 0; i < 50; i++) {
@@ -477,14 +469,17 @@
                     }
                 }
             }
+*/
 
             function tick4() {
-                if (in4.length > 49) {                 // Push a new data point onto the back.
+                if (in2.length > 49) {                 // Push a new data point onto the back.
+                    console.log("data4 = "+data4);
+                    console.log("in4 = "+in2);
                     for (var i = 0; i < 50; i++) {
-                        data4.push(in4.shift());
+                        data4.push(in2.shift());
                     }
                     d3.select(this)                     // Redraw the line.
-                        .attr("d", line2)
+                        .attr("d", line)
                         .attr("transform", null);
                     // Slide it to the left.
                     d3.active(this)
@@ -496,43 +491,7 @@
                     }
                 }
             }
-
-            function tick5() {
-                if (in5.length > 49) {                 // Push a new data point onto the back.
-                    for (var i = 0; i < 50; i++) {
-                        data5.push(in5.shift());
-                    }
-                    d3.select(this)                     // Redraw the line.
-                        .attr("d", line2)
-                        .attr("transform", null);
-                    // Slide it to the left.
-                    d3.active(this)
-                        .attr("transform", "translate(" + x(-1) + ",0)")
-                        .transition()
-                        .on("start", tick5);
-                    for (var i = 0; i < 50; i++) {
-                        data5.shift();                    // Pop the old data point off the front.
-                    }
-                }
-            }
-            function tick6() {
-                if (in6.length > 49) {                 // Push a new data point onto the back.
-                    for (var i = 0; i < 50; i++) {
-                        data6.push(in6.shift());
-                    }
-                    d3.select(this)                     // Redraw the line.
-                        .attr("d", line2)
-                        .attr("transform", null);
-                    // Slide it to the left.
-                    d3.active(this)
-                        .attr("transform", "translate(" + x(-1) + ",0)")
-                        .transition()
-                        .on("start", tick6);
-                    for (var i = 0; i < 50; i++) {
-                        data6.shift();                    // Pop the old data point off the front.
-                    }
-                }
-            }
+            
 
         };
 
@@ -553,8 +512,8 @@
     };
 
     console.log("end of script");
-
 </script>
+
 <body>
 <section style="width:90%;height:33%;margin:auto; ">
     <svg id="RAW_LEFT" width="600" height="263"></svg>
@@ -565,16 +524,16 @@
     <svg id="EEG_RIGHT" width="600" height="263"></svg>
 </section>
 <section style="width:90%;height:33%;margin:auto ">
-    <svg id="PPG_FFT" width="600" height="263"></svg>
     <svg id="PPG" width="600" height="263"></svg>
-</section>
-<section style="width:90%;height:33%;margin:auto ">
-    <svg id="ACC_X" width="600" height="263"></svg>
+    <svg id="HR" width="600" height="263"></svg>
 </section>
 <section style="width:90%;height:33%;margin:auto;">
+    <svg id="ACC_X" width="600" height="263"></svg>
     <svg id="ACC_Y" width="600" height="263"></svg>
+</section>
+<section style="width:90%;height:33%;margin:auto ">
     <svg id="ACC_Z" width="600" height="263"></svg>
 </section>
-
 </body>
+
 </html>
