@@ -146,10 +146,8 @@
 
                 console.log(diff + "diff")
                 console.log(queue.length-1 + "queue.length-1")*/
-
-
-
-                return 60000/(diff*1.0/(1.0*queue.length-1)) //averages the distances and converts this ms value to BPM HR
+                //averages the distances and converts this ms value to BPM HR
+                return Math.floor(60000/(diff*1.0/(1.0*queue.length-1)));
 
             }
             function createRTInfoVis(a0, a1, a2, a3, a4, a5, a6, a7) {
@@ -185,7 +183,18 @@
                 var margin = {top: 20, right: 20, bottom: 20, left: 40},
                     width = +svg0.attr("width"),
                     height = +svg0.attr("height") - margin.top - margin.bottom;
-
+                 svg0.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+                     .style("font-size", "16px").style("text-decoration", "underline").text("Left Electroencephalogram");
+                 svg1.append("text").attr("x", "50%").attr("y","15%").attr("text-anchor", "middle")
+                     .style("font-size", "16px").style("text-decoration", "underline").text("Right Electroencephalogram");
+                 svg2.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+                     .style("font-size", "16px").style("text-decoration", "underline").text("Photoplethysmogram");
+                 svg2.append("text").attr("x", "50%").attr("y", "22%").attr("text-anchor", "middle").attr("id","bpm_display")
+                     .style("font-size", "16px").text("60 bpm");
+                 svg3.append("text").attr("x", "50%").attr("y","15%").attr("text-anchor", "middle")
+                     .style("font-size", "16px").style("text-decoration", "underline").text("Emotional Valence");
+                 svg4.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+                     .style("font-size", "16px").style("text-decoration", "underline").text("Engagement");
                 chart0 = svg0.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
                 chart1 = svg1.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
                 chart2 = svg2.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -491,8 +500,6 @@
                     }
                 }
             }
-            
-
         };
 
         this.version = function (msg) {

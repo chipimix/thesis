@@ -61,7 +61,7 @@ def tostring(data):
             # ppg_no_baseline=peakutils.baseline(data[2])             #remove baseline from ppg signal
             indexes = peakutils.indexes(data[2], thres=max(data[2])/1023, min_dist=500) #find its peak
             print "max=", max(data[2]), " indexes = ", indexes
-            for elmt in indexes:                                       #set up peak value in original ppg as 1024
+            for elmt in indexes:                                       #set up peak value in original ppg as 1023
                 data[2][elmt]=1023
 
             csv_file = file('readings/potato.csv', 'a')
