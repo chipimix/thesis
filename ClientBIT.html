@@ -17,31 +17,43 @@
 <script type="text/javascript">
     var sample_rate = 1000,
         fft_res=501,
-
-        data0 = Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512), //RAW_L
-        data1 = Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512), //RAW_R
-        data2 = Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 0), //EEG_L
-        data3 = Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 0), //EEG_R
-        data4 = Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512), //PPG
-/*        data5 = Array.apply(null, new Array(n)).map(Number.prototype.valueOf, 32),
-        data6 = Array.apply(null, new Array(n/2+1)).map(Number.prototype.valueOf, 0),
-        data7 = Array.apply(null, new Array(n/2+1)).map(Number.prototype.valueOf, 0),*/
-        line,
-        line2,
-        x,
-        y,
-        y2,
-        chart0,
-        chart1,
-        chart2,
-        chart3,
-        chart4,
-        chart5,
-        chart6,
-        chart7,
+        record_dur=1,
+        data_RAW1 = Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
+        data_RAW2 = Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
+        data_EEG1 = Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 0),
+        data_EEG2 = Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 0),
+        data_PPG = Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
+        data_HR = [],
+        data_VALNC=[],
+        data_FOCUS=[],
+        data_MEDI=[],
+        line_RAW,
+        line_EEG,
+        line_VALNC,
+        line_FOCUS,
+        line_MEDI,
+        x_RAW,
+        y_RAW,
+        y_EEG,
+        chart_RAW1, //RAW_L
+        chart_RAW2, //RAW_R
+        chart_EEG1, //EEG_L
+        chart_EEG2, //EEG_R
+        chart_PPG, //PPG
+        chart_HR, //HR
+        chart_VALNC, //VALENCE
+        chart_FOCUS, //FOCUS
+        chart_MEDI, //MEDITATION
         queue=[],// contains all peaks corresponding time (ORDERED, in ms) in the PPG's previous 10seconds
-        hr;
-
+        hr=60;
+    var hr_max=0,
+        hr_min=0,
+        emo_valnc_max=0, //NOTA, AO ATRIBUIR VALOR ZERO ESTOU A ASSUMIR QUE EXISTIRAO VALORES POSITIVOS & NEGATIVOS!!!!
+        emo_valnc_min=0,
+        engagement_max=0,
+        engagement_min=0,
+        meditation_max=0,
+        meditation_min=0;
     //------------------------------------------------------------
 
     function getPosition(string, subString, index) {
@@ -105,6 +117,9 @@
             ws.send("device.read(1000)[:,-6:]")
         };
         this.read = function (msg) {
+
+//--------------------- Message properly recieved ----------------------------------------------------------------------
+
             // When a set of samples is read request more samples
             ws.send("device.read(1000)[:,-6:]");
             var dimensions = [ msg.length, msg[0].length ];
@@ -117,16 +132,45 @@
             var in5 = msg[5]; //AAC_Z
             var in6 = msg[6]; //EEG_LEFT
             var in7 = msg[7]; //EEG_RIGHT
-            data2=msg[6];
-            data3=msg[7];
+            data_EEG1=msg[6];
+            data_EEG2=msg[7];
 
-            createRTInfoVis(in0, in1, in2, in3, in4, in5,in6,in7);
+            //determine left theta wave spike
+            var left_theta_spike=Math.max(in6[4],in6[5],in6[6],in6[7]); //4Hz,5Hz,6Hz,7Hz
+            //determine right theta wave spike
+            var right_theta_spike=Math.max(in7[4],in7[5],in7[6],in7[7]); //4Hz,5Hz,6Hz,7Hz
+            //determine left theta wave spike //8Hz,9Hz,10Hz,11Hz,12Hz,13Hz
+            var left_alpha_spike=Math.max(in6[8],in6[9],in6[10],in6[11],in6[12],in6[13]);
+            //determine right theta wave spike //8Hz,9Hz,10Hz,11Hz,12Hz,13Hz
+            var right_alpha_spike=Math.max(in7[8],in7[9],in7[10],in7[11],in6[12],in6[13]);
+            //determine left theta wave spike
+            var left_beta_spike=Math.max(in6[17],in6[18],in6[19],in6[20]);//17Hz,18Hz,19Hz,20Hz
+            //determine right theta wave spike
+            var right_beta_spike=Math.max(in7[17],in7[18],in7[19],in7[20]);//17Hz,18Hz,19Hz,20Hz
+
+            var avg_theta_freq=0.5*left_theta_spike+0.5*right_theta_spike;
+            var avg_alpha_freq=0.5*left_alpha_spike+0.5*right_alpha_spike;
+            var avg_beta_freq=0.5*left_beta_spike+0.5*right_beta_spike;
+            var valence =right_alpha_spike-left_alpha_spike; //emotional valence formula
+            var engagement = (avg_beta_freq/(avg_alpha_freq+avg_theta_freq)).toFixed(4); //engagement formula
+            var meditation = 0.5*(avg_theta_freq+avg_alpha_freq); //meditation formula
+
+            //determine max and min; used for linear scaling of domain
+            if(emo_valnc_max<valence){emo_valnc_max=valence;}
+            if(emo_valnc_min>valence){ emo_valnc_min=valence;}
+            if(engagement_max<engagement){ engagement_max=engagement; }
+            if(engagement_min>engagement){  engagement_min=engagement; }
+            if(meditation_max<meditation){ meditation_max=meditation; }
+            if(meditation_min>meditation){ meditation_min=meditation; }
+
+            data_VALNC.push(valence); //store emotional valence in arraylist's corresponding second of the recording session
+            data_FOCUS.push(engagement); //store engagement metric in arraylist's corresponding second of the recording session
+            data_MEDI.push(meditation); //store meditation metric in arraylist's corresponding second of the recording session
             function estimateHR(){
                 var aux_queue=[];
                 queue = queue.map(function(x) { return x+1000;});//update time of previous peak occurance (they are now 1sec late)
                 var pos = in2.indexOf(1023); //LOOK FOR PEAK OCCURENCEs
                 while (~pos) {  //This bitwise not operator returns false if -1 and true if positive. A perfect match for indexOf which returns the index 0 ... n if found and -1 if not.
-//                    console.log(new Date().toLocaleTimeString()+"="+pos);
                     aux_queue.push(pos);    //add peaks occurence QUEUE
                     pos = in2.indexOf(1023, pos + 1); // use old position incremented to keep searching for peak occurence
                 }
@@ -137,19 +181,20 @@
                     queue.shift()
                 }
                 var diff=0;
-                var aux_comment=0;
                 for(var i = 0; i<queue.length-1;i++){ //Add differences between each peak occurence
                     diff+=queue[i]-queue[i+1]
-                    aux_comment+=1;
                 }
-/*                console.log("["+aux_comment+"]"+queue+"->"+ 60000/(diff*1.0/(queue.length-1)))
-
-                console.log(diff + "diff")
-                console.log(queue.length-1 + "queue.length-1")*/
                 //averages the distances and converts this ms value to BPM HR
-                return Math.floor(60000/(diff*1.0/(1.0*queue.length-1)));
+                var hr = Math.round(60000/(diff*1.0/(queue.length-1)))
+                if(hr_max<hr){ hr_max=hr; }
+                if(hr_min>hr){ hr_min=hr; }
+                data_HR.push(hr);
+                return hr;
 
             }
+
+            createRTInfoVis(in0, in1, in2, in3, in4, in5,in6,in7);
+            record_dur+=1;
             function createRTInfoVis(a0, a1, a2, a3, a4, a5, a6, a7) {
                 hr=estimateHR();
                 var svg0 = d3.select("svg#RAW_LEFT");
@@ -157,266 +202,295 @@
                 var svg2 = d3.select("svg#EEG_LEFT");
                 var svg3 = d3.select("svg#EEG_RIGHT");
                 var svg4 = d3.select("svg#PPG");
-                var svg_ACC_X = d3.select("svg#ACC_X");
-                var svg_AAC_Y = d3.select("svg#ACC_Y");
-                var svg_AAC_Z = d3.select("svg#ACC_Z");
+                var svg5 = d3.select("svg#HR");
+                var svg_VALNC = d3.select("svg#VALNC");
+                var svg_FOCUS = d3.select("svg#FOCUS");
+                var svg_MEDI = d3.select("svg#MEDI");
 
                 // if previous plots already exists, remove them
-                if (!svg0.select("g").empty()) { svg0.select("g").remove(); }
-                if (!svg1.select("g").empty()) { svg1.select("g").remove(); }
-                if (!svg2.select("g").empty()) { svg2.select("g").remove(); }
-                if (!svg3.select("g").empty()) { svg3.select("g").remove(); }
-                if (!svg4.select("g").empty()) { svg4.select("g").remove(); }
+                if (!svg0.select("g").empty()) { svg0.select("g").remove(); svg0.selectAll("text").remove(); }
+                if (!svg1.select("g").empty()) { svg1.select("g").remove(); svg1.selectAll("text").remove();}
+                if (!svg2.select("g").empty()) { svg2.select("g").remove(); svg2.selectAll("text").remove(); }
+                if (!svg3.select("g").empty()) { svg3.select("g").remove(); svg3.selectAll("text").remove(); }
+                if (!svg4.select("g").empty()) { svg4.select("g").remove(); svg4.selectAll("text").remove(); }
+                if (!svg5.select("g").empty()) { svg5.select("g").remove(); svg5.selectAll("text").remove(); }
+                if (!svg_VALNC.select("g").empty()) { svg_VALNC.select("g").remove(); svg_VALNC.selectAll("text").remove(); }
+                if (!svg_FOCUS.select("g").empty()) { svg_FOCUS.select("g").remove(); svg_FOCUS.selectAll("text").remove(); }
+                if (!svg_MEDI.select("g").empty()) { svg_MEDI.select("g").remove(); svg_MEDI.selectAll("text").remove(); }
 
-                if (!svg_ACC_X.select("g").empty()) {                        //if previous plots already exists
-                    svg_ACC_X.select("g").remove()                         // remove them
-                }
-                if (!svg_AAC_Y.select("g").empty()) {                        //if previous plots already exists
-                    svg_AAC_Y.select("g").remove()                         // remove them
-                }
-                if (!svg_AAC_Z.select("g").empty()) {                        //if previous plots already exists
-                    svg_AAC_Z.select("g").remove()                         // remove them
-                }
-
-                //1console.log("after= " + svg.select("g").empty());
 
                 var margin = {top: 20, right: 20, bottom: 20, left: 40},
                     width = +svg0.attr("width"),
                     height = +svg0.attr("height") - margin.top - margin.bottom;
-                 svg0.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
-                     .style("font-size", "16px").style("text-decoration", "underline").text("Left Electroencephalogram");
-                 svg1.append("text").attr("x", "50%").attr("y","15%").attr("text-anchor", "middle")
-                     .style("font-size", "16px").style("text-decoration", "underline").text("Right Electroencephalogram");
-                 svg2.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
-                     .style("font-size", "16px").style("text-decoration", "underline").text("Photoplethysmogram");
-                 svg2.append("text").attr("x", "50%").attr("y", "22%").attr("text-anchor", "middle").attr("id","bpm_display")
-                     .style("font-size", "16px").text("60 bpm");
-                 svg3.append("text").attr("x", "50%").attr("y","15%").attr("text-anchor", "middle")
-                     .style("font-size", "16px").style("text-decoration", "underline").text("Emotional Valence");
-                 svg4.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
-                     .style("font-size", "16px").style("text-decoration", "underline").text("Engagement");
-                chart0 = svg0.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart1 = svg1.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart2 = svg2.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart3 = svg3.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart4 = svg4.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart5 = svg_ACC_X.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart6 = svg_AAC_Y.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-                chart7 = svg_AAC_Z.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                svg0.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+                    .style("font-size", "16px").style("text-decoration", "underline").text("FP2 RAW");
+                svg1.append("text").attr("x", "50%").attr("y","15%").attr("text-anchor", "middle")
+                    .style("font-size", "16px").style("text-decoration", "underline").text("FP1 RAW");
+                svg2.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+                    .style("font-size", "16px").style("text-decoration", "underline").text("FP2 Power Spectrum");
+                svg3.append("text").attr("x", "50%").attr("y","15%").attr("text-anchor", "middle")
+                    .style("font-size", "16px").style("text-decoration", "underline").text("FP1 Power Spectrum");
+                svg4.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+                    .style("font-size", "16px").style("text-decoration", "underline").text("Photoplethysmogram");
+                svg4.append("text").attr("x", "50%").attr("y", "22%").attr("text-anchor", "middle").attr("id","bpm_display")
+                    .style("font-size", "16px").text(hr.toString()+" bpm");
+                svg5.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+                    .style("font-size", "16px").style("text-decoration", "underline").text("Heart Rate");
+                svg_VALNC.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+                    .style("font-size", "16px").style("text-decoration", "underline").text("Emotional Valence");
+                svg_FOCUS.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+                    .style("font-size", "16px").style("text-decoration", "underline").text("Engagement");
+                svg_MEDI.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+                    .style("font-size", "16px").style("text-decoration", "underline").text("Meditation");
 
-                x = d3.scaleLinear().domain([1, sample_rate-1]).range([0, width-margin.left*1.2]); //used for PPG & RAW INPUT
-                x2 = d3.scaleLinear().domain([0, fft_res - 400 - 1]).range([0, width-margin.left*1.2]); //used for EEGs
+                chart_RAW1 = svg0.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart_RAW2 = svg1.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart_EEG1 = svg2.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart_EEG2 = svg3.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart_PPG = svg4.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart_HR = svg5.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart_VALNC = svg_VALNC.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart_FOCUS = svg_FOCUS.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                chart_MEDI = svg_MEDI.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-                y = d3.scaleLinear()
-                    .domain([1024, 0])
-                    .range([0, height]);
-                y2 = d3.scaleLinear()
-                    .domain([100000, 0])
-                    .range([0, height]);
-                y3 = d3.scaleLinear()
-                    .domain([64, 0])
-                    .range([0, height]);
+                x_RAW = d3.scaleLinear().domain([1, sample_rate-1]).range([0, width-margin.left*1.2]); //used for PPG & RAW INPUT
+                x_EEG = d3.scaleLinear().domain([0, fft_res - 400 - 1]).range([0, width-margin.left*1.2]); //used for EEGs
+                x_amass = d3.scaleLinear().domain([0, record_dur]).range([0, width-margin.left*1.2]); //used for cummulative plots
 
-                line = d3.line()
-                    .x(function (d, i) {
-                        return x(i);
-                    })
-                    .y(function (d, i) {
-                        return y(d);
-                    });
+                y_RAW = d3.scaleLinear().domain([1024, 0]).range([0, height]);
+                y_EEG = d3.scaleLinear().domain([100000, 0]).range([0, height]);
+                y_HR = d3.scaleLinear().domain([hr_max, hr_min]).range([0, height]); //used for HR cummulative plot
+                y_VALNC = d3.scaleLinear().domain([emo_valnc_max, emo_valnc_min]).range([0, height-margin.top]); //used for VALENCE
+                y_FOCUS = d3.scaleLinear().domain([engagement_max, engagement_min]).range([0, height-margin.top]); //used for ENGAGEMENT
+                y_MEDI = d3.scaleLinear().domain([meditation_max, meditation_min]).range([0, height-margin.top]); //used for MEDITATION
 
-                line2 = d3.line()
-                    .x(function (d, i) {
-                        return x2(i);
-                    })
-                    .y(function (d, i) {
-                        return y2(d);
-                    });
-                line3 = d3.line()
-                    .x(function(d, i){
-                        return x2(d);
-                    })
-                    .y(function(d, i){
-                       return y3(d);
-                    });
-                chart0.append("defs")
+                line_RAW = d3.line() //used for PPG & RAW INPUT
+                    .x(function (d, i) { return x_RAW(i);})
+                    .y(function (d, i) { return y_RAW(d);});
+
+                line_EEG = d3.line()
+                    .x(function (d, i) { return x_EEG(i); })
+                    .y(function (d, i) { return y_EEG(d); });
+                line_HR = d3.line()
+                    .x(function(d, i){ return x_amass(i); })
+                    .y(function(d, i){ return y_HR(d); });
+                line_VALNC = d3.line()
+                    .x(function(d, i){ return x_amass(i); })
+                    .y(function(d, i){ return y_VALNC(d); });
+                line_FOCUS = d3.line()
+                    .x(function(d, i){ return x_amass(i); })
+                    .y(function(d, i){ return y_FOCUS(d); });
+                line_MEDI = d3.line()
+                    .x(function(d, i){ return x_amass(i); })
+                    .y(function(d, i){ return y_MEDI(d); });
+                chart_RAW1.append("defs")
                     .append("clipPath")
                     .attr("id", "clip0") //attr must differ
                     .append("rect")
                     .attr("width", width)
                     .attr("height", height);
-                chart0.append("g")
+                chart_RAW1.append("g")
                     .attr("class", "axis axis--x")
-                    .attr("transform", "translate(0," + y(0) + ")")
-                    .call(d3.axisBottom(x));
-                chart0.append("g")
+                    .attr("transform", "translate(0," + y_RAW(0) + ")")
+                    .call(d3.axisBottom(x_RAW));
+                chart_RAW1.append("g")
                     .attr("class", "axis axis--y")
-                    .call(d3.axisLeft(y));
+                    .call(d3.axisLeft(y_RAW));
 
-                chart1.append("defs").append("clipPath")
+                chart_RAW2.append("defs").append("clipPath")
                     .attr("id", "clip1")
                     .append("rect")
                     .attr("width", width)
                     .attr("height", height);
-                chart1.append("g")
+                chart_RAW2.append("g")
                     .attr("class", "axis axis--x")
-                    .attr("transform", "translate(0," + y(0) + ")")
-                    .call(d3.axisBottom(x));
-                chart1.append("g")
+                    .attr("transform", "translate(0," + y_RAW(0) + ")")
+                    .call(d3.axisBottom(x_RAW));
+                chart_RAW2.append("g")
                     .attr("class", "axis axis--y")
-                    .call(d3.axisLeft(y));
+                    .call(d3.axisLeft(y_RAW));
 
-                chart2.append("defs").append("clipPath")
+                chart_EEG1.append("defs").append("clipPath")
                     .attr("id", "clip2")
                     .append("rect")
                     .attr("width", width)
                     .attr("height", height);
-                chart2.append("g")
+                chart_EEG1.append("g")
                     .attr("class", "axis axis--x")
-                    .attr("transform", "translate(0," + y2(0) + ")")
-                    .call(d3.axisBottom(x2));
-                chart2.append("g")
+                    .attr("transform", "translate(0," + y_EEG(0) + ")")
+                    .call(d3.axisBottom(x_EEG));
+                chart_EEG1.append("g")
                     .attr("class", "axis axis--y")
-                    .call(d3.axisLeft(y2));
+                    .call(d3.axisLeft(y_EEG));
 
-                chart3.append("defs").append("clipPath")
+                chart_EEG2.append("defs").append("clipPath")
                     .attr("id", "clip3")
                     .append("rect")
                     .attr("width", width)
                     .attr("height", height);
-                chart3.append("g")
+                chart_EEG2.append("g")
                     .attr("class", "axis axis--x")
-                    .attr("transform", "translate(0," + y2(0) + ")")
-                    .call(d3.axisBottom(x2));
-                chart3.append("g")
+                    .attr("transform", "translate(0," + y_EEG(0) + ")")
+                    .call(d3.axisBottom(x_EEG));
+                chart_EEG2.append("g")
                     .attr("class", "axis axis--y")
-                    .call(d3.axisLeft(y2));
+                    .call(d3.axisLeft(y_EEG));
 
-                chart4.append("defs").append("clipPath")
+                chart_PPG.append("defs").append("clipPath")
                     .attr("id", "clip4")
                     .append("rect")
                     .attr("width", width)
                     .attr("height", height);
-                chart4.append("g")
+                chart_PPG.append("g")
                     .attr("class", "axis axis--x")
-                    .attr("transform", "translate(0," + y(0) + ")")
-                    .call(d3.axisBottom(x));
-                chart4.append("g")
+                    .attr("transform", "translate(0," + y_RAW(0) + ")")
+                    .call(d3.axisBottom(x_RAW));
+                chart_PPG.append("g")
                     .attr("class", "axis axis--y")
-                    .call(d3.axisLeft(y));
-/*
+                    .call(d3.axisLeft(y_RAW));
 
-                chart5.append("defs").append("clipPath")
-                    .attr("id", "clip5")
-                    .append("rect")
-                    .attr("width", width)
-                    .attr("height", height);
-                chart5.append("g")
-                    .attr("class", "axis axis--x")
-                    .attr("transform", "translate(0," + y2(0) + ")")
-                    .call(d3.axisBottom(x));
-                chart5.append("g")
-                    .attr("class", "axis axis--y")
-                    .call(d3.axisLeft(y2));
-
-                chart6.append("defs").append("clipPath")
+                chart_VALNC.append("defs").append("clipPath")
                     .attr("id", "clip6")
                     .append("rect")
                     .attr("width", width)
                     .attr("height", height);
-                chart6.append("g")
+                chart_VALNC.append("g")
                     .attr("class", "axis axis--x")
-                    .attr("transform", "translate(0," + y3(0) + ")")
-                    .call(d3.axisBottom(x2));
-                chart6.append("g")
+                    .attr("transform", "translate(0," + y_VALNC(0) + ")")
+                    .call(d3.axisBottom(x_amass).ticks(0));
+                chart_VALNC.append("g")
                     .attr("class", "axis axis--y")
-                    .call(d3.axisLeft(y3));
-*/
+                    .call(d3.axisLeft(y_VALNC));
+                chart_VALNC.append("g")
+                    .append("path")
+                    .attr("id","path_6")
+                    .attr("class", "line")
+                    .attr("d",line_VALNC(data_VALNC));
 
-                chart0.append("g")
+                chart_HR.append("defs").append("clipPath")
+                    .attr("id", "clip5")
+                    .append("rect")
+                    .attr("width", width)
+                    .attr("height", height);
+                chart_HR.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate(0," + y_HR(0) + ")")
+                    .call(d3.axisBottom(x_amass).ticks(0));
+                chart_HR.append("g")
+                    .attr("class", "axis axis--y")
+                    .call(d3.axisLeft(y_HR));
+                chart_HR.append("g")
+                    .append("path")
+                    .attr("id","path_5")
+                    .attr("class", "line")
+                    .attr("d",line_HR(data_HR));
+        
+                chart_FOCUS.append("defs").append("clipPath")
+                    .attr("id", "clip7")
+                    .append("rect")
+                    .attr("width", width)
+                    .attr("height", height);
+                chart_FOCUS.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate(0," + y_FOCUS(0) + ")")
+                    .call(d3.axisBottom(x_amass).ticks(0));
+                chart_FOCUS.append("g")
+                    .attr("class", "axis axis--y")
+                    .call(d3.axisLeft(y_FOCUS));
+                chart_FOCUS.append("g")
+                    .append("path")
+                    .attr("id","path_7")
+                    .attr("class", "line")
+                    .attr("d",line_FOCUS(data_FOCUS));
+
+                chart_MEDI.append("defs").append("clipPath")
+                    .attr("id", "clip8")
+                    .append("rect")
+                    .attr("width", width)
+                    .attr("height", height);
+                chart_MEDI.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate(0," + y_MEDI(0) + ")")
+                    .call(d3.axisBottom(x_amass).ticks(0));
+                chart_MEDI.append("g")
+                    .attr("class", "axis axis--y")
+                    .call(d3.axisLeft(y_MEDI));
+                chart_MEDI.append("g")
+                    .append("path")
+                    .attr("id","path_8")
+                    .attr("class", "line")
+                    .attr("d",line_MEDI(data_MEDI));
+                
+                chart_RAW1.append("g")
                     .attr("clip-path", "url(#clip0)")
                     .append("path")
-                    .datum(data0)
+                    .datum(data_RAW1)
                     .attr("class", "line")
                     .transition()
                     .duration(50)
                     .ease(d3.easeLinear)
                     .on("start", tick0);
 
-                chart1.append("g")
+                chart_RAW2.append("g")
                     .attr("clip-path", "url(#clip1)")
                     .append("path")
-                    .datum(data1)
+                    .datum(data_RAW2)
                     .attr("class", "line")
                     .transition()
                     .duration(50)
                     .ease(d3.easeLinear)
                     .on("start", tick1);
-                chart2.append("g")
+
+                chart_EEG1.append("g")
                     .attr("clip-path", "url(#clip2)")
                     .append("path")
-                    .datum(data2)
+                    .datum(data_EEG1)
                     .attr("class", "line")
-                    .attr("d", line2);
+                    .attr("d", line_EEG);
 
-                chart3.append("g")
+                chart_EEG2.append("g")
                     .attr("clip-path", "url(#clip3)")
                     .append("path")
-                    .datum(data3)
+                    .datum(data_EEG2)
                     .attr("class", "line")
-                    .attr("d", line2);
+                    .attr("d", line_EEG);
 
-
-                chart4.append("g")
+                chart_PPG.append("g")
                     .attr("clip-path", "url(#clip4)")
                     .append("path")
-                    .datum(data4)
+                    .datum(data_PPG)
                     .attr("class", "line")
                     .transition()
                     .duration(50)
                     .ease(d3.easeLinear)
                     .on("start", tick4);
-
-/*
-                chart5.append("g")
-                    .attr("clip-path", "url(#clip5)")
-                    .append("path")
-                    .datum(data5)
-                    .attr("class", "line")
-                    .transition()
-                    .duration(50)
-                    .ease(d3.easeLinear)
-                    .on("start", tick5);
-
-                chart6.append("g")
-                    .attr("clip-path", "url(#clip6)")
-                    .append("path")
-                    .attr("id","path_6")
-                    .datum(data6)
-                    .attr("class", "line")
-                    .transition()
-                    .duration(500)
-                    .ease(d3.easeLinear)
-                    .on("start", tick6);
-*/
+                d3.select("#path_5")
+                    .attr("d",line_HR(data_HR));
+                d3.select("#path_6")
+                    .attr("d",line_VALNC(data_VALNC));
+                d3.select("#path_7")
+                    .attr("d",line_FOCUS(data_FOCUS));
+                d3.select("#path_8")
+                    .attr("d",line_MEDI(data_MEDI));
+                
             }
 
 
             function tick0() {
                 if (in0.length > 49) {                 // Push a new data point onto the back.
                     for (var i = 0; i < 50; i++) {
-                        data0.push(in0.shift());
+                        data_RAW1.push(in0.shift());
                     }
                     d3.select(this)                     // Redraw the line.
-                        .attr("d", line)
+                        .attr("d", line_RAW)
                         .attr("transform", null);
                     // Slide it to the left.
                     d3.active(this)
-                        .attr("transform", "translate(" + x(-1) + ",0)")
+                        .attr("transform", "translate(" + x_RAW(-1) + ",0)")
                         .transition()
                         .on("start", tick0);
                     for (var i = 0; i < 50; i++) {
-                        data0.shift();                    // Pop the old data point off the front.
+                        data_RAW1.shift();                    // Pop the old data point off the front.
                     }
                 }
             }
@@ -424,82 +498,44 @@
             function tick1() {
                 if (in1.length > 49) {                 // Push a new data point onto the back.
                     for (var i = 0; i < 50; i++) {
-                        data1.push(in1.shift());
+                        data_RAW2.push(in1.shift());
                     }
                     d3.select(this)                     // Redraw the line.
-                        .attr("d", line)
+                        .attr("d", line_RAW)
                         .attr("transform", null);
                     // Slide it to the left.
                     d3.active(this)
-                        .attr("transform", "translate(" + x(-1) + ",0)")
+                        .attr("transform", "translate(" + x_RAW(-1) + ",0)")
                         .transition()
                         .on("start", tick1);
                     for (var i = 0; i < 50; i++) {
-                        data1.shift();                    // Pop the old data point off the front.
+                        data_RAW2.shift();                    // Pop the old data point off the front.
                     }
                 }
             }
 
-/*
-            function tick2() {
-                if (in2.length > 49) {                 // Push a new data point onto the back.
-                    for (var i = 0; i < 50; i++) {
-                        data2.push(in2.shift());
-                    }
-                    d3.select(this)                     // Redraw the line.
-                        .attr("d", line)
-                        .attr("transform", null);
-                    // Slide it to the left.
-                    d3.active(this)
-                        .attr("transform", "translate(" + x(-1) + ",0)")
-                        .transition()
-                        .on("start", tick2);
-                    for (var i = 0; i < 50; i++) {
-                        data2.shift();                    // Pop the old data point off the front.
-                    }
-                }
-            }
-
-            function tick3() {
-                if (in3.length > 49) {                 // Push a new data point onto the back.
-                    for (var i = 0; i < 50; i++) {
-                        data3.push(in3.shift());
-                    }
-                    d3.select(this)                     // Redraw the line.
-                        .attr("d", line)
-                        .attr("transform", null);
-                    // Slide it to the left.
-                    d3.active(this)
-                        .attr("transform", "translate(" + x(-1) + ",0)")
-                        .transition()
-                        .on("start", tick3);
-                    for (var i = 0; i < 50; i++) {
-                        data3.shift();                    // Pop the old data point off the front.
-                    }
-                }
-            }
-*/
 
             function tick4() {
                 if (in2.length > 49) {                 // Push a new data point onto the back.
-                    console.log("data4 = "+data4);
-                    console.log("in4 = "+in2);
+//                    console.log("data_PPG = "+data_PPG);
+//                    console.log("in4 = "+in2);
                     for (var i = 0; i < 50; i++) {
-                        data4.push(in2.shift());
+                        data_PPG.push(in2.shift());
                     }
                     d3.select(this)                     // Redraw the line.
-                        .attr("d", line)
+                        .attr("d", line_RAW)
                         .attr("transform", null);
                     // Slide it to the left.
                     d3.active(this)
-                        .attr("transform", "translate(" + x(-1) + ",0)")
+                        .attr("transform", "translate(" + x_RAW(-1) + ",0)")
                         .transition()
                         .on("start", tick4);
                     for (var i = 0; i < 50; i++) {
-                        data4.shift();                    // Pop the old data point off the front.
+                        data_PPG.shift();                    // Pop the old data point off the front.
                     }
                 }
             }
+
         };
 
         this.version = function (msg) {
@@ -535,11 +571,11 @@
     <svg id="HR" width="600" height="263"></svg>
 </section>
 <section style="width:90%;height:33%;margin:auto;">
-    <svg id="ACC_X" width="600" height="263"></svg>
-    <svg id="ACC_Y" width="600" height="263"></svg>
+    <svg id="VALNC" width="600" height="263"></svg>
+    <svg id="FOCUS" width="600" height="263"></svg>
 </section>
 <section style="width:90%;height:33%;margin:auto ">
-    <svg id="ACC_Z" width="600" height="263"></svg>
+    <svg id="MEDI" width="600" height="263"></svg>
 </section>
 </body>
 
