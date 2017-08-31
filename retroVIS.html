@@ -6,7 +6,10 @@
     <title>retroVIS</title>
 </head>
 <style>
-
+    body{
+        height:100%;
+        font: 12px sans-serif;
+    }
     .line {
         fill: none;
         stroke: #000;
@@ -46,7 +49,7 @@
 <body style="background: linear-gradient(to right, white, lightsteelblue, white); ">
 
 	<div id="slider">
-        <text fill="red" id="time">00:00</text>
+        <text id="time">00:00</text>
         <input type='range' min='0' max='0' step='1' value='0' id='rangeSlider' />
 	    <button type="button" id="start">Play</button>
 	    <button type="button" id="stop">Pause</button>
@@ -55,10 +58,7 @@
     <section style="width:100%;height:30%; margin-top:2%;">
         <svg id="EEG1" width="740" height="228"></svg>
         <svg id="EEG2" width="740" height="228"></svg>
-<!--        <div id="RAW_L" style="width: 50%;height: 100%;float: left;"></div>
-        <div id="RAW_R" style="margin-left: 50%; height: 100%;"></div> -->
     </section>
-
     <section style="width:100%;height:30%;margin-bottom: 3px ">
         <svg id="PPG" width="740" height="100%"></svg>
         <svg id="HR" width="740" height="100%"></svg>
@@ -94,7 +94,7 @@
          chart5,
          chart6;
      var curr_pos,max_pos;
-     var focus0,focus1,focus2,focus4,focus5,focus6;
+     var highlight,focus0,focus1,focus2,focus4,focus5,focus6;
      var svg_x_mouse_pos;
      var emo_valnc_max=0, //NOTA, AO ATRIBUIR VALOR ZERO ESTOU A ASSUMIR QUE EXISTIRAO VALORES POSITIVOS & NEGATIVOS!!!!
          emo_valnc_min=0,
@@ -128,6 +128,7 @@
              });
          });
 //---------------------File NOW uploaded into browser-------------------------------------------------------------------
+         console.log("file loaded");
          //Set EEGs and PPG metrics to a0..a2 array
          a0=data[0]; //EEG_LEFT
          a1=data[1]; //EEG_RIGHT
@@ -135,40 +136,7 @@
          max_pos=a0.length/fft_res;
          console.log(max_pos);
          //DERIVE theta, alpha, beta & frequencies METRICS; DERIVE valence, engagement and meditation METRICS
-         for(var i = 4;i<data[0].length;i+=fft_res){//fft_res=501 frequencies. Each one corresponds to 1second (0-500Hz)
-
-             //determine left theta wave spike
-             var left_theta_spike=Math.max(data[0][i],data[0][i+1],data[0][i+2],data[0][i+3]); //4Hz,5Hz,6Hz,7Hz
-             //determine right theta wave spike
-             var right_theta_spike=Math.max(data[1][i],data[1][i+1],data[1][i+2],data[1][i+3]); //4Hz,5Hz,6Hz,7Hz
-             //determine left theta wave spike //8Hz,9Hz,10Hz,11Hz,12Hz,13Hz
-             var left_alpha_spike=Math.max(data[0][i+4],data[0][i+5],data[0][i+6],data[0][i+7],data[0][i+8],data[0][i+9]);
-             //determine right theta wave spike //8Hz,9Hz,10Hz,11Hz,12Hz,13Hz
-             var right_alpha_spike=Math.max(data[1][i+4],data[1][i+5],data[1][i+6],data[1][i+7],data[1][i+8],data[1][i+9]);
-             //determine left theta wave spike
-             var left_beta_spike=Math.max(data[0][i+13],data[0][i+14],data[0][i+15],data[0][i+16]);//17Hz,18Hz,19Hz,20Hz
-             //determine right theta wave spike
-             var right_beta_spike=Math.max(data[1][i+13],data[1][i+14],data[1][i+15],data[1][i+16]);//17Hz,18Hz,19Hz,20Hz
-
-             var avg_theta_freq=0.5*left_theta_spike+0.5*right_theta_spike;
-             var avg_alpha_freq=0.5*left_alpha_spike+0.5*right_alpha_spike;
-             var avg_beta_freq=0.5*left_beta_spike+0.5*right_beta_spike;
-             var valence =right_alpha_spike-left_alpha_spike; //emotional valence formula
-             var engagement = (avg_beta_freq/(avg_alpha_freq+avg_theta_freq)).toFixed(4); //engagement formula
-             var meditation = 0.5*(avg_theta_freq+avg_alpha_freq); //meditation formula
-
-             //determine max and min; used for linear scaling of domain
-             if(emo_valnc_max<valence){emo_valnc_max=valence;}
-             if(emo_valnc_min>valence){ emo_valnc_min=valence;}
-             if(engagement_max<engagement){ engagement_max=engagement; }
-             if(engagement_min>engagement){  engagement_min=engagement; }
-             if(meditation_max<meditation){ meditation_max=meditation; }
-             if(meditation_min>meditation){ meditation_min=meditation; }
-
-             a4.push(valence); //store emotional valence in arraylist's corresponding second of the recording session
-             a5.push(engagement); //store engagement metric in arraylist's corresponding second of the recording session
-             a6.push(meditation); //store meditation metric in arraylist's corresponding second of the recording session
-         }
+         derive_EEG_Metrics();
 
          for(var sec = 0; sec<max_pos; sec+=1){
              var curr_hr = estimateHR(sec);
@@ -199,21 +167,21 @@
          //set up margins for each graph
          var margin = {top: 10, right: 0, bottom: 10, left: 50}, width = +svg0.attr("width"), height = +svg0.attr("height") - margin.top - margin.bottom;
          //set up title of each svg image
-         svg0.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
-             .style("font-size", "16px").style("text-decoration", "underline").text("Left Electroencephalogram");
-         svg1.append("text").attr("x", "50%").attr("y","15%").attr("text-anchor", "middle")
-             .style("font-size", "16px").style("text-decoration", "underline").text("Right Electroencephalogram");
-         svg2.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+         svg0.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
+             .style("font-size", "16px").style("text-decoration", "underline").text("FP2 Power Spectrum");
+         svg1.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
+             .style("font-size", "16px").style("text-decoration", "underline").text("FP1 Power Spectrum");
+         svg2.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
              .style("font-size", "16px").style("text-decoration", "underline").text("Photoplethysmogram");
          svg2.append("text").attr("x", "50%").attr("y", "22%").attr("text-anchor", "middle").attr("id","bpm_display")
              .style("font-size", "16px").text("60 bpm");
-         svg3.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+         svg3.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
              .style("font-size", "16px").style("text-decoration", "underline").text("Heart Rate");
-         svg4.append("text").attr("x", "50%").attr("y","15%").attr("text-anchor", "middle")
+         svg4.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
              .style("font-size", "16px").style("text-decoration", "underline").text("Emotional Valence");
-         svg5.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+         svg5.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
              .style("font-size", "16px").style("text-decoration", "underline").text("Engagement");
-         svg6.append("text").attr("x", "50%").attr("y", "15%").attr("text-anchor", "middle")
+         svg6.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
              .style("font-size", "16px").style("text-decoration", "underline").text("Meditation");
 
          //translate each svg image so we can have space for the axis
@@ -243,7 +211,8 @@
          y_HR = d3.scaleLinear().domain([hr_max, hr_min]).range([0, height]); //used for HR / time
          line_EEG = d3.line()
              .x(function (d, i) {return x_EEG(i+1);}) //return x(i+1) since we'll discard 0Hz from t
-             .y(function (d, i) {return y_EEG(d);});
+             .y(function (d, i) {return y_EEG(d);})
+             .curve(d3.curveCatmullRom);
          line_PPG = d3.line()
              .x(function (d, i) { return x_PPG(i);})
              .y(function (d, i) { return y_PPG(d);});
@@ -418,63 +387,7 @@
          svg6.on("mouseover", function() { focus6.style("display", null); })
              .on("mouseout", function() { focus6.style("display", "none"); })
              .on("mousemove",update_mouse_pos6);
-
-         function update_mouse_pos0(){
-             //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_EEG.invert(d3.mouse(this)[0])-3.5); //subtract by 3.5 because of axis transform
-             focus0.attr("transform", "translate(" + x_EEG(svg_x_mouse_pos) + "," + y_EEG(a0[curr_pos*fft_res+svg_x_mouse_pos]) + ")");
-             focus0.select("text").text(function() { return a0[curr_pos*501+svg_x_mouse_pos]; }).style("fill", "red");
-             focus0.select(".x-hover-line").attr("y2", height-margin.bottom -y_EEG(a0[curr_pos*501+svg_x_mouse_pos]));
-             focus0.select(".y-hover-line").attr("x2", width + width);
-         }
-         function update_mouse_pos1(){
-             //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_EEG.invert(d3.mouse(this)[0])-3.5); //subtract by 3.5 because of axis transform
-             focus1.attr("transform", "translate(" + x_EEG(svg_x_mouse_pos) + "," + y_EEG(a1[curr_pos*fft_res+svg_x_mouse_pos]) + ")");
-             focus1.select("text").text(function() { return a1[curr_pos*501+svg_x_mouse_pos]; }).style("fill", "red");
-             focus1.select(".x-hover-line").attr("y2", height-margin.bottom -y_EEG(a1[curr_pos*501+svg_x_mouse_pos]));
-             focus1.select(".y-hover-line").attr("x2", width + width);
-         }
-         function update_mouse_pos2(){
-             //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_PPG.invert(d3.mouse(this)[0])-70); //subtract by 70 because of axis transform
-             focus2.attr("transform", "translate(" + x_PPG(svg_x_mouse_pos) + "," + y_PPG(a2[curr_pos*sample_rate+svg_x_mouse_pos+1000]) + ")");
-             focus2.select("text").text(function() { return a2[curr_pos*sample_rate+svg_x_mouse_pos+1000]; }).style("fill", "red");
-             focus2.select(".x-hover-line").attr("y2", height-margin.bottom -y_PPG(a2[curr_pos*sample_rate+svg_x_mouse_pos+1000]));
-             focus2.select(".y-hover-line").attr("x2", width + width);
-         }
-         function update_mouse_pos3(){
-             //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-50)); //subtract by 50 because of axis transform
-             focus3.attr("transform", "translate(" + x_amass(svg_x_mouse_pos) + "," + y_HR(a3[svg_x_mouse_pos]) + ")");
-             focus3.select("text").text(function() { return a3[svg_x_mouse_pos]; }).style("fill", "red");
-             focus3.select(".x-hover-line").attr("y2", height-margin.bottom -y_HR(a3[svg_x_mouse_pos]));
-             focus3.select(".y-hover-line").attr("x2", width + width);
-         }
-         function update_mouse_pos4(){
-             //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-50)); //subtract by 50 because of axis transform
-             focus4.attr("transform", "translate(" + x_amass(svg_x_mouse_pos) + "," + y_VLNC(a4[svg_x_mouse_pos]) + ")");
-             focus4.select("text").text(function() { return a4[svg_x_mouse_pos]; }).style("fill", "red");
-             focus4.select(".x-hover-line").attr("y2", height-margin.bottom -y_VLNC(a4[svg_x_mouse_pos]));
-             focus4.select(".y-hover-line").attr("x2", width + width);
-         }
-         function update_mouse_pos5(){
-             //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-50)); //subtract by 3.5 because of axis transform
-             focus5.attr("transform", "translate(" + x_amass(svg_x_mouse_pos) + "," + y_FOCUS(a5[svg_x_mouse_pos]) + ")");
-             focus5.select("text").text(function() { return a5[svg_x_mouse_pos]; }).style("fill", "red");
-             focus5.select(".x-hover-line").attr("y2", height-margin.bottom -y_FOCUS(a5[svg_x_mouse_pos]));
-             focus5.select(".y-hover-line").attr("x2", width + width);
-         }
-         function update_mouse_pos6(){
-             //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-50)); //subtract by 3.5 because of axis transform
-             focus6.attr("transform", "translate(" + x_amass(svg_x_mouse_pos) + "," + y_MEDI(a6[svg_x_mouse_pos]) + ")");
-             focus6.select("text").text(function() { return a6[svg_x_mouse_pos]; }).style("fill", "red");
-             focus6.select(".x-hover-line").attr("y2", height-margin.bottom -y_MEDI(a6[svg_x_mouse_pos]));
-             focus6.select(".y-hover-line").attr("x2", width + width);
-         }
+         
          chart0.append("g")
             .attr("class", "axis axis--x")
             .attr("transform", "translate(0," + y_EEG(1) + ")")
@@ -541,7 +454,7 @@
          chart3.append("g")
              .attr("class", "axis axis--x")
              .attr("transform", "translate(0," + y_HR(0) + ")")
-             .call(d3.axisBottom(x_amass).ticks(0));
+             .call(d3.axisBottom(x_amass).ticks(1));
          chart3.append("g")
              .attr("class", "axis axis--y")
              .call(d3.axisLeft(y_HR));
@@ -559,7 +472,7 @@
          chart4.append("g")
              .attr("class", "axis axis--x")
              .attr("transform", "translate(0," + y_VLNC(0) + ")")
-             .call(d3.axisBottom(x_PPG).ticks(0));
+             .call(d3.axisBottom(x_PPG).ticks(1));
          chart4.append("g")
              .attr("class", "axis axis--y")
              .call(d3.axisLeft(y_VLNC));
@@ -577,7 +490,7 @@
          chart5.append("g")
              .attr("class", "axis axis--x")
              .attr("transform", "translate(0," + y_FOCUS(0) + ")")
-             .call(d3.axisBottom(x_PPG).ticks(0));
+             .call(d3.axisBottom(x_PPG).ticks(1));
          chart5.append("g")
              .attr("class", "axis axis--y")
              .call(d3.axisLeft(y_FOCUS));
@@ -595,7 +508,7 @@
          chart6.append("g")
              .attr("class", "axis axis--x")
              .attr("transform", "translate(0," + y_MEDI(0) + ")")
-             .call(d3.axisBottom(x_PPG).ticks(0));
+             .call(d3.axisBottom(x_PPG).ticks(1));
          chart6.append("g")
              .attr("class", "axis axis--y")
              .call(d3.axisLeft(y_MEDI));
@@ -606,32 +519,24 @@
              .attr("class", "line");
 
 //         var s= d3.select("#rangeSlider").attr("max",data[0].length/fft_res); //PODE DESAPARECER
-
+         updateFFT();
+         updateLineChart();
          d3.select('#rangeSlider').on('input', function() {
              curr_pos=d3.select("#rangeSlider").property("value");
+             updateSlider();
              updateFFT();
              updateLineChart();
+
         });
 
         var myTimer;
         d3.select("#start").on("click", function() {
             clearInterval (myTimer);
-              myTimer = setInterval (function() {
-                  var b= d3.select("#rangeSlider");
-                var t = (+b.property("value") + 1) % (+b.property("max") + 1);
-                if (t == 0) {
-                    t = +b.property("min");
-                }
-
-                b.property("value", t);
-                d3.select("#time").text(n(Math.floor(t / 60) || 0)+":"+n(t % 60));
-                curr_pos=d3.select("#rangeSlider").property("value");
-                hr=estimateHR(curr_pos);
-                d3.select("#bpm_display").text(hr.toString()+" bpm");
+            myTimer = setInterval (function() {
+                updateSlider();
                 updateFFT();
                 updateLineChart();
-
-          }, 1000);
+            }, 1000);
         });
 
         d3.select("#stop").on("click", function() {
@@ -644,8 +549,7 @@
         //updateLineChart interpolates xvalues (time on xx axis)
         function updateLineChart(){
             var t = d3.transition().duration(500);
-
-            //update xx domain of Valence, Engagement & Meditation
+            //update xx domain of HR Valence, Engagement & Meditation plots
             x_amass = d3.scaleLinear().domain([0, curr_pos]).range([0, width-margin.left*1.2]);
             line_VLNC = d3.line()
              .x(function (d, i) {return x_amass(i);})
@@ -666,25 +570,27 @@
 
            for (var i = 0; i < 1000; i++) {
                 data_PPG.push(Number(a2[curr_pos*1000+i]));
-            }
-            d3.select("path#path_2.line")
+           }
+           d3.select("path#path_2.line")
                 .attr("d",line_PPG(a2.slice(curr_pos*1000,curr_pos*1000+2000)))
                 .attr("transform",null)
                 .transition()
                 .attr("transform","translate("+x_PPG(-1000)+",0)")
-                .duration(500);
-            d3.select("#path_3")
-                .attr("d",line_HR(a3));
-            d3.select("#path_4")
-                .attr("d",line_VLNC(a4));
-            d3.select("#path_5")
-                .attr("d",line_FOCUS(a5));
-            d3.select("#path_6")
-                .attr("d",line_MEDI(a6));
+                .duration(250);
+           hr=estimateHR(curr_pos);
+           d3.select("#bpm_display").text(hr.toString()+" bpm");
+           d3.select("#path_3")
+               .attr("d",line_HR(a3));
+           d3.select("#path_4")
+               .attr("d",line_VLNC(a4));
+           d3.select("#path_5")
+               .attr("d",line_FOCUS(a5));
+           d3.select("#path_6")
+               .attr("d",line_MEDI(a6));
 
-            for (var i = 0; i < 1000; i++) {
-                data_PPG.shift();
-            }
+           for (var i = 0; i < 1000; i++) {
+               data_PPG.shift();
+           }
         }
         //updateFFT interpolates yvalues (frequencies on xx axis)
         function updateFFT(){
@@ -698,6 +604,17 @@
                 .transition()
                 .duration(1000)
                 .attr("d",line_EEG(a1.slice(1+curr_pos*fft_res,curr_pos*fft_res+fft_res-450)));
+        }
+        function updateSlider(){
+            var b= d3.select("#rangeSlider");
+            var t = (+b.property("value") + 1) % (+b.property("max") + 1);
+            if (t == 0) {
+                t = +b.property("min");
+            }
+            b.property("value", t);
+            d3.select("#time").text(n(Math.floor(t / 60) || 0)+":"+n(t % 60));
+            curr_pos=d3.select("#rangeSlider").property("value");
+
         }
         function estimateHR(pos){
              var queue=[];
@@ -728,47 +645,130 @@
              return hr;
 
         }
+        function derive_EEG_Metrics(){
+            for(var i = 4;i<data[0].length;i+=fft_res){//fft_res=501 frequencies. Each one corresponds to 1second (0-500Hz)
 
+                //determine left theta wave spike
+                var left_theta_spike=Math.max(data[0][i],data[0][i+1],data[0][i+2],data[0][i+3]); //4Hz,5Hz,6Hz,7Hz
+                //determine right theta wave spike
+                var right_theta_spike=Math.max(data[1][i],data[1][i+1],data[1][i+2],data[1][i+3]); //4Hz,5Hz,6Hz,7Hz
+                //determine left theta wave spike //8Hz,9Hz,10Hz,11Hz,12Hz,13Hz
+                var left_alpha_spike=Math.max(data[0][i+4],data[0][i+5],data[0][i+6],data[0][i+7],data[0][i+8],data[0][i+9]);
+                //determine right theta wave spike //8Hz,9Hz,10Hz,11Hz,12Hz,13Hz
+                var right_alpha_spike=Math.max(data[1][i+4],data[1][i+5],data[1][i+6],data[1][i+7],data[1][i+8],data[1][i+9]);
+                //determine left theta wave spike
+                var left_beta_spike=Math.max(data[0][i+13],data[0][i+14],data[0][i+15],data[0][i+16]);//17Hz,18Hz,19Hz,20Hz
+                //determine right theta wave spike
+                var right_beta_spike=Math.max(data[1][i+13],data[1][i+14],data[1][i+15],data[1][i+16]);//17Hz,18Hz,19Hz,20Hz
 
+                var avg_theta_freq=0.5*left_theta_spike+0.5*right_theta_spike;
+                var avg_alpha_freq=0.5*left_alpha_spike+0.5*right_alpha_spike;
+                var avg_beta_freq=0.5*left_beta_spike+0.5*right_beta_spike;
+                var valence =right_alpha_spike-left_alpha_spike; //emotional valence formula
+                var engagement = (avg_beta_freq/(avg_alpha_freq+avg_theta_freq)).toFixed(4); //engagement formula
+                var meditation = 0.5*(avg_theta_freq+avg_alpha_freq); //meditation formula
+
+                //determine max and min; used for linear scaling of domain
+                if(emo_valnc_max<valence){emo_valnc_max=valence;}
+                if(emo_valnc_min>valence){ emo_valnc_min=valence;}
+                if(engagement_max<engagement){ engagement_max=engagement; }
+                if(engagement_min>engagement){  engagement_min=engagement; }
+                if(meditation_max<meditation){ meditation_max=meditation; }
+                if(meditation_min>meditation){ meditation_min=meditation; }
+
+                a4.push(valence); //store emotional valence in arraylist's corresponding second of the recording session
+                a5.push(engagement); //store engagement metric in arraylist's corresponding second of the recording session
+                a6.push(meditation); //store meditation metric in arraylist's corresponding second of the recording session
+            }
+        }
+        function update_mouse_pos0(){
+             //get x axis position of mouse
+             svg_x_mouse_pos = Math.round(x_EEG.invert(d3.mouse(this)[0])-3.5); //subtract by 3.5 because of axis transform
+             focus0.attr("transform", "translate(" + x_EEG(svg_x_mouse_pos) + "," + y_EEG(a0[curr_pos*fft_res+svg_x_mouse_pos]) + ")");
+             focus0.select("text").text(function() { return a0[curr_pos*501+svg_x_mouse_pos]; }).style("fill", "red");
+             focus0.select(".x-hover-line").attr("y2", height-margin.bottom -y_EEG(a0[curr_pos*501+svg_x_mouse_pos]));
+             focus0.select(".y-hover-line").attr("x2", width + width);
+         }
+         function update_mouse_pos1(){
+             //get x axis position of mouse
+             svg_x_mouse_pos = Math.round(x_EEG.invert(d3.mouse(this)[0])-3.5); //subtract by 3.5 because of axis transform
+             focus1.attr("transform", "translate(" + x_EEG(svg_x_mouse_pos) + "," + y_EEG(a1[curr_pos*fft_res+svg_x_mouse_pos]) + ")");
+             focus1.select("text").text(function() { return a1[curr_pos*501+svg_x_mouse_pos]; }).style("fill", "red");
+             focus1.select(".x-hover-line").attr("y2", height-margin.bottom -y_EEG(a1[curr_pos*501+svg_x_mouse_pos]));
+             focus1.select(".y-hover-line").attr("x2", width + width);
+         }
+         function update_mouse_pos2(){
+             //get x axis position of mouse
+             svg_x_mouse_pos = Math.round(x_PPG.invert(d3.mouse(this)[0])-70); //subtract by 70 because of axis transform
+             focus2.attr("transform", "translate(" + x_PPG(svg_x_mouse_pos) + "," + y_PPG(a2[curr_pos*sample_rate+svg_x_mouse_pos+1000]) + ")");
+             focus2.select("text").text(function() { return a2[curr_pos*sample_rate+svg_x_mouse_pos+1000]; }).style("fill", "red");
+             focus2.select(".x-hover-line").attr("y2", height-margin.bottom -y_PPG(a2[curr_pos*sample_rate+svg_x_mouse_pos+1000]));
+             focus2.select(".y-hover-line").attr("x2", width + width);
+         }
+         function update_mouse_pos3(){
+             //get x axis position of mouse
+             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-50)); //subtract by 50 because of axis transform
+             focus3.attr("transform", "translate(" + x_amass(svg_x_mouse_pos) + "," + y_HR(a3[svg_x_mouse_pos]) + ")");
+             focus3.select("text").text(function() { return a3[svg_x_mouse_pos]; }).style("fill", "red");
+             focus3.select(".x-hover-line").attr("y2", height-y_HR(a3[svg_x_mouse_pos]));
+             focus3.select(".y-hover-line").attr("x2", width + width);
+         }
+         function update_mouse_pos4(){
+             //get x axis position of mouse
+             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-50)); //subtract by 50 because of axis transform
+             focus4.attr("transform", "translate(" + x_amass(svg_x_mouse_pos) + "," + y_VLNC(a4[svg_x_mouse_pos]) + ")");
+             focus4.select("text").text(function() { return a4[svg_x_mouse_pos]; }).style("fill", "red");
+             focus4.select(".x-hover-line").attr("y2", height - y_VLNC(a4[svg_x_mouse_pos]));
+             focus4.select(".y-hover-line").attr("x2", width + width);
+         }
+         function update_mouse_pos5(){
+             //get x axis position of mouse
+             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-50)); //subtract by 3.5 because of axis transform
+             focus5.attr("transform", "translate(" + x_amass(svg_x_mouse_pos) + "," + y_FOCUS(a5[svg_x_mouse_pos]) + ")");
+             focus5.select("text").text(function() { return a5[svg_x_mouse_pos]; }).style("fill", "red");
+             focus5.select(".x-hover-line").attr("y2", height-y_FOCUS(a5[svg_x_mouse_pos]));
+             focus5.select(".y-hover-line").attr("x2", width + width);
+         }
+         function update_mouse_pos6(){
+             //get x axis position of mouse
+             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-50)); //subtract by 3.5 because of axis transform
+             focus6.attr("transform", "translate(" + x_amass(svg_x_mouse_pos) + "," + y_MEDI(a6[svg_x_mouse_pos]) + ")");
+             focus6.select("text").text(function() { return a6[svg_x_mouse_pos]; }).style("fill", "red");
+             focus6.select(".x-hover-line").attr("y2", height-y_MEDI(a6[svg_x_mouse_pos]));
+             focus6.select(".y-hover-line").attr("x2", width + width);
+         }
         })
  //---------------------File NOT uploaded into browser-------------------------------------------------------------
 
     }
-
     d3.select("html")
-      .style("height","100%")
+        .style("height","100%")
+        .append("input")
+        .attr("type", "file")
+        .attr("accept", ".csv")
+        .style("margin", "1px 0px 5px 0px")
+        .style("top", "0%")
+        .style("border-style","outset")
+        .style("left", "0%%")
+        .style("width","100%")
+        .style("background-color","white")
+        .style("position", "fixed")
+        .style("font-weight","bold")
+        .on("change", function() {
+            console.log("loading file");
+            var file = d3.event.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onloadend = function(evt) {
+                    var dataUrl = evt.target.result;
+                    // The following call results in an "Access denied" error in IE.
+                    previewCsvUrl(dataUrl);
+                };
+                reader.readAsDataURL(file);
+            }
+        })
 
-    d3.select("body")
-      .style("height","100%")
-      .style("font", "12px sans-serif")
 
-    .append("input")
-      .attr("type", "file")
-      .attr("accept", ".csv")
-      .style("margin", "1px 0px 5px 0px")
-      .style("top", "0%")
-      .style("border-style","outset")
-      .style("left", "0%%")
-      .style("width","100%")
-      .style("background-color","white")
-      .style("position", "fixed")
-      .on("change", function() {
-        var file = d3.event.target.files[0];
-        if (file) {
-          var reader = new FileReader();
-            reader.onloadend = function(evt) {
-              var dataUrl = evt.target.result;
-              // The following call results in an "Access denied" error in IE.
-              previewCsvUrl(dataUrl);
-          };
-         reader.readAsDataURL(file);
-        }
-     })
-
-    d3.select("body")
-    .append("div")
-     .attr("id", "preview")
-     .style("margin", "5px")
 
 
 </script>

@@ -1,16 +1,21 @@
 <html>
 <style>
-
+    body{
+        height:100%;
+        font: 12px sans-serif;
+    }
     .line {
         fill: none;
         stroke: #000;
         stroke-width: 1.5px;
     }
+    svg{
+        background-color: #F1F3F3;
+    }
 
 </style>
 
 
-<link href="examples.css" rel="stylesheet" type="text/css">
 <script language="javascript" type="text/javascript" src="d3/d3.js"></script>
 <script language="javascript" type="text/javascript" src="jquery.js"></script>
 
@@ -20,8 +25,8 @@
         record_dur=1,
         data_RAW1 = Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
         data_RAW2 = Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
-        data_EEG1 = Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 0),
-        data_EEG2 = Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 0),
+        data_EEG1 = Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 1),
+        data_EEG2 = Array.apply(null, new Array(fft_res)).map(Number.prototype.valueOf, 1),
         data_PPG = Array.apply(null, new Array(sample_rate)).map(Number.prototype.valueOf, 512),
         data_HR = [],
         data_VALNC=[],
@@ -258,7 +263,7 @@
                 x_amass = d3.scaleLinear().domain([0, record_dur]).range([0, width-margin.left*1.2]); //used for cummulative plots
 
                 y_RAW = d3.scaleLinear().domain([1024, 0]).range([0, height]);
-                y_EEG = d3.scaleLinear().domain([100000, 0]).range([0, height]);
+                y_EEG = d3.scaleLog().domain([10000000, 1]).range([0, height]);
                 y_HR = d3.scaleLinear().domain([hr_max, hr_min]).range([0, height]); //used for HR cummulative plot
                 y_VALNC = d3.scaleLinear().domain([emo_valnc_max, emo_valnc_min]).range([0, height-margin.top]); //used for VALENCE
                 y_FOCUS = d3.scaleLinear().domain([engagement_max, engagement_min]).range([0, height-margin.top]); //used for ENGAGEMENT
@@ -317,7 +322,7 @@
                     .attr("height", height);
                 chart_EEG1.append("g")
                     .attr("class", "axis axis--x")
-                    .attr("transform", "translate(0," + y_EEG(0) + ")")
+                    .attr("transform", "translate(0," + y_EEG(1) + ")")
                     .call(d3.axisBottom(x_EEG));
                 chart_EEG1.append("g")
                     .attr("class", "axis axis--y")
@@ -330,7 +335,7 @@
                     .attr("height", height);
                 chart_EEG2.append("g")
                     .attr("class", "axis axis--x")
-                    .attr("transform", "translate(0," + y_EEG(0) + ")")
+                    .attr("transform", "translate(0," + y_EEG(1) + ")")
                     .call(d3.axisBottom(x_EEG));
                 chart_EEG2.append("g")
                     .attr("class", "axis axis--y")
@@ -558,24 +563,24 @@
 </script>
 
 <body>
-<section style="width:90%;height:33%;margin:auto; ">
-    <svg id="RAW_LEFT" width="600" height="263"></svg>
-    <svg id="RAW_RIGHT" width="600" height="263"></svg>
+<section style="width:100%;height:33%;margin:auto; margin-bottom: 12px ">
+    <svg id="RAW_LEFT" width="740" height="263"></svg>
+    <svg id="RAW_RIGHT" width="740" height="263"></svg>
 </section>
-<section style="width:90%;height:33%;margin:auto ">
-    <svg id="EEG_LEFT" width="600" height="263"></svg>
-    <svg id="EEG_RIGHT" width="600" height="263"></svg>
+<section style="width:100%;height:33%;margin:auto; margin-bottom: 3px ">
+    <svg id="EEG_LEFT" width="740" height="100%"></svg>
+    <svg id="EEG_RIGHT" width="740" height="100%"></svg>
 </section>
-<section style="width:90%;height:33%;margin:auto ">
-    <svg id="PPG" width="600" height="263"></svg>
-    <svg id="HR" width="600" height="263"></svg>
+<section style="width:100%;height:33%;margin:auto; margin-bottom: 3px ">
+    <svg id="PPG" width="740" height="100%"></svg>
+    <svg id="HR" width="740" height="100%"></svg>
 </section>
-<section style="width:90%;height:33%;margin:auto;">
-    <svg id="VALNC" width="600" height="263"></svg>
-    <svg id="FOCUS" width="600" height="263"></svg>
+<section style="width:100%;height:33%;margin:auto; margin-bottom: 3px;">
+    <svg id="VALNC" width="740" height="100%"></svg>
+    <svg id="FOCUS" width="740" height="100%"></svg>
 </section>
-<section style="width:90%;height:33%;margin:auto ">
-    <svg id="MEDI" width="600" height="263"></svg>
+<section style="width:100%;height:33%;margin:auto ">
+    <svg id="MEDI" width="740" height="100%"></svg>
 </section>
 </body>
 
