@@ -94,7 +94,7 @@
          chart5,
          chart6;
      var curr_pos,max_pos;
-     var highlight,focus0,focus1,focus2,focus4,focus5,focus6;
+     var focus0,focus1,focus3,focus2,focus4,focus5,focus6;
      var svg_x_mouse_pos;
      var emo_valnc_max=0, //NOTA, AO ATRIBUIR VALOR ZERO ESTOU A ASSUMIR QUE EXISTIRAO VALORES POSITIVOS & NEGATIVOS!!!!
          emo_valnc_min=0,
@@ -162,10 +162,12 @@
          if (!svg4.select("g").empty()) {svg4.select("g").remove()}
          if (!svg5.select("g").empty()) {svg5.select("g").remove()}
          if (!svg6.select("g").empty()) {svg6.select("g").remove()}
-         
+
          if (!svg6.select("g").empty()) {svg6.select("g").remove()}
          //set up margins for each graph
-         var margin = {top: 10, right: 0, bottom: 10, left: 50}, width = +svg0.attr("width"), height = +svg0.attr("height") - margin.top - margin.bottom;
+         var margin = {top: 10, right: 0, bottom: 10, left: 50},
+             width = +svg0.attr("width"),
+             height = +svg0.attr("height") - margin.top - margin.bottom;
          //set up title of each svg image
          svg0.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
              .style("font-size", "16px").style("text-decoration", "underline").text("FP2 Power Spectrum");
@@ -210,7 +212,7 @@
          y_MEDI = d3.scaleLinear().domain([meditation_max, meditation_min]).range([0, height]); //used for MEDITATION
          y_HR = d3.scaleLinear().domain([hr_max, hr_min]).range([0, height]); //used for HR / time
          line_EEG = d3.line()
-             .x(function (d, i) {return x_EEG(i+1);}) //return x(i+1) since we'll discard 0Hz from t
+             .x(function (d, i) {return x_EEG(i+1);}) //return x(i+1) -- we discard 0Hz from t
              .y(function (d, i) {return y_EEG(d);})
              .curve(d3.curveCatmullRom);
          line_PPG = d3.line()
@@ -232,140 +234,7 @@
              .x(function (d, i) {return x_amass(i);})
              .y(function (d, i) {return y_MEDI(d);})
              .curve(d3.curveCatmullRom);
-         focus0 = chart0.append("g")
-             .attr("class", "focus")
-             .style("display", "none");
-         focus0.append("line")
-             .attr("class", "x-hover-line hover-line")
-             .attr("y1", 0)
-             .attr("y2", height);
-         focus0.append("line")
-             .attr("class", "y-hover-line hover-line")
-             .attr("x1", width)
-             .attr("x2", width);
-         focus0.append("circle")
-             .attr("r", 4);
-         focus0.append("text")
-             .attr("x", -15)
-             .attr("dy", "-1.5em");
-         focus1 = chart1.append("g")
-             .attr("class", "focus")
-             .style("display", "none");
-         focus1.append("line")
-             .attr("class", "x-hover-line hover-line")
-             .attr("y1", 0)
-             .attr("y2", height);
-         focus1.append("line")
-             .attr("class", "y-hover-line hover-line")
-             .attr("x1", width)
-             .attr("x2", width);
-         focus1.append("circle")
-             .attr("r", 4);
-         focus1.append("text")
-             .attr("x", -15)
-             .attr("dy", "-1.5em");
-         focus2 = chart2.append("g")
-             .attr("class", "focus")
-             .style("display", "none");
-         focus2.append("line")
-             .attr("class", "x-hover-line hover-line")
-             .attr("y1", 0)
-             .attr("y2", height);
-         focus2.append("line")
-             .attr("class", "y-hover-line hover-line")
-             .attr("x1", width)
-             .attr("x2", width);
-         focus2.append("circle")
-             .attr("r", 4);
-         focus2.append("text")
-             .attr("x", -15)
-             .attr("dy", "-1.5em");
-         focus3 = chart3.append("g")
-             .attr("class", "focus")
-             .style("display", "none");
-         focus3.append("line")
-             .attr("class", "x-hover-line hover-line")
-             .attr("y1", 0)
-             .attr("y2", height);
-         focus3.append("line")
-             .attr("class", "y-hover-line hover-line")
-             .attr("x1", width)
-             .attr("x2", width);
-         focus3.append("circle")
-             .attr("r", 4);
-         focus3.append("text")
-             .attr("x", -15)
-             .attr("dy", "-1.5em");         
-         focus4 = chart4.append("g")
-             .attr("class", "focus")
-             .style("display", "none");
-         focus4.append("line")
-             .attr("class", "x-hover-line hover-line")
-             .attr("y1", 0)
-             .attr("y2", height);
-         focus4.append("line")
-             .attr("class", "y-hover-line hover-line")
-             .attr("x1", width)
-             .attr("x2", width);
-         focus4.append("circle")
-             .attr("r", 4);
-         focus4.append("text")
-             .attr("x", -15)
-             .attr("dy", "-1.5em");
-         focus5 = chart5.append("g")
-             .attr("class", "focus")
-             .style("display", "none");
-         focus5.append("line")
-             .attr("class", "x-hover-line hover-line")
-             .attr("y1", 0)
-             .attr("y2", height);
-         focus5.append("line")
-             .attr("class", "y-hover-line hover-line")
-             .attr("x1", width)
-             .attr("x2", width);
-         focus5.append("circle")
-             .attr("r", 4);
-         focus5.append("text")
-             .attr("x", -15)
-             .attr("dy", "-1.5em");
-         focus5 = chart5.append("g")
-             .attr("class", "focus")
-             .style("display", "none");
-         focus5.append("line")
-             .attr("class", "x-hover-line hover-line")
-             .attr("y1", 0)
-             .attr("y2", height);
-         focus5.append("line")
-             .attr("class", "y-hover-line hover-line")
-             .attr("x1", width)
-             .attr("x2", width);
-         focus5.append("circle")
-             .attr("r", 4);
-         focus5.append("text")
-             .attr("x", -15)
-             .attr("dy", "-1.5em");
-         focus6 = chart6.append("g")
-             .attr("class", "focus")
-             .style("display", "none");
-         focus6.append("line")
-             .attr("class", "x-hover-line hover-line")
-             .attr("y1", 0)
-             .attr("y2", height);
-         focus6.append("line")
-             .attr("class", "y-hover-line hover-line")
-             .attr("x1", width)
-             .attr("x2", width);
-         focus6.append("circle")
-             .attr("r", 4);
-         focus6.append("text")
-             .attr("x", -15)
-             .attr("dy", "-1.5em");
 
-         chart0.append("defs").append("clipPath")
-             .attr("id", "clip0") //attr must differ
-             .append("rect")
-             .attr("width", width)
-             .attr("height", height);
          svg0.on("mouseover", function() { focus0.style("display", null); })
              .on("mouseout", function() { focus0.style("display", "none"); })
              .on("mousemove",update_mouse_pos0);
@@ -387,7 +256,12 @@
          svg6.on("mouseover", function() { focus6.style("display", null); })
              .on("mouseout", function() { focus6.style("display", "none"); })
              .on("mousemove",update_mouse_pos6);
-         
+
+         chart0.append("defs").append("clipPath")
+             .attr("id", "clip0") //attr must differ
+             .append("rect")
+             .attr("width", width)
+             .attr("height", height);
          chart0.append("g")
             .attr("class", "axis axis--x")
             .attr("transform", "translate(0," + y_EEG(1) + ")")
@@ -403,13 +277,11 @@
              .attr("d", line_EEG(Array.apply(null, Array(50)).map(Number.prototype.valueOf,1))) //linearscale=0, logscale=1
              .attr("transform", null);
 
-
          chart1.append("defs").append("clipPath")
              .attr("id", "clip1")
              .append("rect")
              .attr("width", width)
              .attr("height", height);
-
          chart1.append("g")
              .attr("class", "axis axis--x")
              .attr("transform", "translate(0," + y_EEG(1) + ")")
@@ -518,36 +390,39 @@
              .attr("id","path_6")
              .attr("class", "line");
 
-//         var s= d3.select("#rangeSlider").attr("max",data[0].length/fft_res); //PODE DESAPARECER
-         updateFFT();
-         updateLineChart();
+         drawHighlight();
+
+         //first plot:
+         drawFFT();
+         drawLineChart();
+         
+         //plot charts according to range slider position
          d3.select('#rangeSlider').on('input', function() {
              curr_pos=d3.select("#rangeSlider").property("value");
              updateSlider();
-             updateFFT();
-             updateLineChart();
+             drawFFT();
+             drawLineChart();
 
         });
-
+         //plot charts automatically if play button pressed 
         var myTimer;
         d3.select("#start").on("click", function() {
             clearInterval (myTimer);
             myTimer = setInterval (function() {
                 updateSlider();
-                updateFFT();
-                updateLineChart();
+                drawFFT();
+                drawLineChart();
             }, 1000);
         });
 
+        //stop automatic chart plotting if stop button pressed
         d3.select("#stop").on("click", function() {
           clearInterval (myTimer);
         });
 
-        function n(n){      //helper function. Used to convert to MM:SS from #seconds
-            return n > 9 ? "" + n: "0" + n;
-        }
-        //updateLineChart interpolates xvalues (time on xx axis)
-        function updateLineChart(){
+
+        //drawLineChart interpolates xvalues (time on xx axis)
+        function drawLineChart(){
             var t = d3.transition().duration(500);
             //update xx domain of HR Valence, Engagement & Meditation plots
             x_amass = d3.scaleLinear().domain([0, curr_pos]).range([0, width-margin.left*1.2]);
@@ -592,8 +467,8 @@
                data_PPG.shift();
            }
         }
-        //updateFFT interpolates yvalues (frequencies on xx axis)
-        function updateFFT(){
+        //drawFFT interpolates yvalues (frequencies on xx axis)
+        function drawFFT(){
 //            console.log(a0.slice(1+curr_pos*fft_res,curr_pos*fft_res+fft_res-450 -1));
             curr_pos=d3.select("#rangeSlider").property("value");
             d3.select("path#path_0.line")
@@ -606,6 +481,9 @@
                 .attr("d",line_EEG(a1.slice(1+curr_pos*fft_res,curr_pos*fft_res+fft_res-450)));
         }
         function updateSlider(){
+            function n(n){      //helper function. Used to convert to MM:SS from #seconds
+                return n > 9 ? "" + n: "0" + n;
+            }
             var b= d3.select("#rangeSlider");
             var t = (+b.property("value") + 1) % (+b.property("max") + 1);
             if (t == 0) {
@@ -681,62 +559,195 @@
                 a6.push(meditation); //store meditation metric in arraylist's corresponding second of the recording session
             }
         }
+        function drawHighlight(){
+            focus0 = chart0.append("g")
+                .attr("class", "focus")
+                .style("display", "none");
+            focus0.append("line")
+                .attr("class", "x-hover-line hover-line")
+                .attr("y1", 0)
+                .attr("y2", height);
+            focus0.append("line")
+                .attr("class", "y-hover-line hover-line")
+                .attr("x1", width)
+                .attr("x2", width);
+            focus0.append("circle")
+                .attr("r", 4);
+            focus0.append("text")
+                .attr("x", -15)
+                .attr("dy", "-1.5em");
+
+            focus1 = chart1.append("g")
+                .attr("class", "focus")
+                .style("display", "none");
+            focus1.append("line")
+                .attr("class", "x-hover-line hover-line")
+                .attr("y1", 0)
+                .attr("y2", height);
+            focus1.append("line")
+                .attr("class", "y-hover-line hover-line")
+                .attr("x1", width)
+                .attr("x2", width);
+            focus1.append("circle")
+                .attr("r", 4);
+            focus1.append("text")
+                .attr("x", -15)
+                .attr("dy", "-1.5em");
+
+            focus2 = chart2.append("g")
+                .attr("class", "focus")
+                .style("display", "none");
+            focus2.append("line")
+                .attr("class", "x-hover-line hover-line")
+                .attr("y1", 0)
+                .attr("y2", height);
+            focus2.append("line")
+                .attr("class", "y-hover-line hover-line")
+                .attr("x1", width)
+                .attr("x2", width);
+            focus2.append("circle")
+                .attr("r", 4);
+            focus2.append("text")
+                .attr("x", -15)
+                .attr("dy", "-1.5em");
+            focus3 = chart3.append("g")
+                .attr("class", "focus")
+                .style("display", "none");
+            focus3.append("line")
+                .attr("class", "x-hover-line hover-line")
+                .attr("y1", 0)
+                .attr("y2", height);
+            focus3.append("line")
+                .attr("class", "y-hover-line hover-line")
+                .attr("x1", width)
+                .attr("x2", width);
+            focus3.append("circle")
+                .attr("r", 4);
+            focus3.append("text")
+                .attr("x", -15)
+                .attr("dy", "-1.5em");
+            focus4 = chart4.append("g")
+                .attr("class", "focus")
+                .style("display", "none");
+            focus4.append("line")
+                .attr("class", "x-hover-line hover-line")
+                .attr("y1", 0)
+                .attr("y2", height);
+            focus4.append("line")
+                .attr("class", "y-hover-line hover-line")
+                .attr("x1", width)
+                .attr("x2", width);
+            focus4.append("circle")
+                .attr("r", 4);
+            focus4.append("text")
+                .attr("x", -15)
+                .attr("dy", "-1.5em");
+            focus5 = chart5.append("g")
+                .attr("class", "focus")
+                .style("display", "none");
+            focus5.append("line")
+                .attr("class", "x-hover-line hover-line")
+                .attr("y1", 0)
+                .attr("y2", height);
+            focus5.append("line")
+                .attr("class", "y-hover-line hover-line")
+                .attr("x1", width)
+                .attr("x2", width);
+            focus5.append("circle")
+                .attr("r", 4);
+            focus5.append("text")
+                .attr("x", -15)
+                .attr("dy", "-1.5em");
+            focus5 = chart5.append("g")
+                .attr("class", "focus")
+                .style("display", "none");
+            focus5.append("line")
+                .attr("class", "x-hover-line hover-line")
+                .attr("y1", 0)
+                .attr("y2", height);
+            focus5.append("line")
+                .attr("class", "y-hover-line hover-line")
+                .attr("x1", width)
+                .attr("x2", width);
+            focus5.append("circle")
+                .attr("r", 4);
+            focus5.append("text")
+                .attr("x", -15)
+                .attr("dy", "-1.5em");
+            focus6 = chart6.append("g")
+                .attr("class", "focus")
+                .style("display", "none");
+            focus6.append("line")
+                .attr("class", "x-hover-line hover-line")
+                .attr("y1", 0)
+                .attr("y2", height);
+            focus6.append("line")
+                .attr("class", "y-hover-line hover-line")
+                .attr("x1", width)
+                .attr("x2", width);
+            focus6.append("circle")
+                .attr("r", 4);
+            focus6.append("text")
+                .attr("x", -15)
+                .attr("dy", "-1.5em");
+        }
         function update_mouse_pos0(){
              //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_EEG.invert(d3.mouse(this)[0])-3.5); //subtract by 3.5 because of axis transform
+             svg_x_mouse_pos = Math.round(x_EEG.invert(d3.mouse(this)[0]-margin.left)); //subtract by 3.5 because of axis transform
              focus0.attr("transform", "translate(" + x_EEG(svg_x_mouse_pos) + "," + y_EEG(a0[curr_pos*fft_res+svg_x_mouse_pos]) + ")");
              focus0.select("text").text(function() { return a0[curr_pos*501+svg_x_mouse_pos]; }).style("fill", "red");
              focus0.select(".x-hover-line").attr("y2", height-margin.bottom -y_EEG(a0[curr_pos*501+svg_x_mouse_pos]));
              focus0.select(".y-hover-line").attr("x2", width + width);
          }
-         function update_mouse_pos1(){
+        function update_mouse_pos1(){
              //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_EEG.invert(d3.mouse(this)[0])-3.5); //subtract by 3.5 because of axis transform
+             svg_x_mouse_pos = Math.round(x_EEG.invert(d3.mouse(this)[0]-margin.left)); //subtract by 3.5 because of axis transform
              focus1.attr("transform", "translate(" + x_EEG(svg_x_mouse_pos) + "," + y_EEG(a1[curr_pos*fft_res+svg_x_mouse_pos]) + ")");
              focus1.select("text").text(function() { return a1[curr_pos*501+svg_x_mouse_pos]; }).style("fill", "red");
              focus1.select(".x-hover-line").attr("y2", height-margin.bottom -y_EEG(a1[curr_pos*501+svg_x_mouse_pos]));
              focus1.select(".y-hover-line").attr("x2", width + width);
          }
-         function update_mouse_pos2(){
+        function update_mouse_pos2(){
              //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_PPG.invert(d3.mouse(this)[0])-70); //subtract by 70 because of axis transform
+             svg_x_mouse_pos = Math.round(x_PPG.invert(d3.mouse(this)[0]-margin.left)); //subtract by 50 because of axis transform
+             console.log(svg_x_mouse_pos);
              focus2.attr("transform", "translate(" + x_PPG(svg_x_mouse_pos) + "," + y_PPG(a2[curr_pos*sample_rate+svg_x_mouse_pos+1000]) + ")");
              focus2.select("text").text(function() { return a2[curr_pos*sample_rate+svg_x_mouse_pos+1000]; }).style("fill", "red");
              focus2.select(".x-hover-line").attr("y2", height-margin.bottom -y_PPG(a2[curr_pos*sample_rate+svg_x_mouse_pos+1000]));
              focus2.select(".y-hover-line").attr("x2", width + width);
          }
-         function update_mouse_pos3(){
+        function update_mouse_pos3(){
              //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-50)); //subtract by 50 because of axis transform
+             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-margin.left));
              focus3.attr("transform", "translate(" + x_amass(svg_x_mouse_pos) + "," + y_HR(a3[svg_x_mouse_pos]) + ")");
              focus3.select("text").text(function() { return a3[svg_x_mouse_pos]; }).style("fill", "red");
              focus3.select(".x-hover-line").attr("y2", height-y_HR(a3[svg_x_mouse_pos]));
              focus3.select(".y-hover-line").attr("x2", width + width);
          }
-         function update_mouse_pos4(){
+        function update_mouse_pos4(){
              //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-50)); //subtract by 50 because of axis transform
+             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-margin.left));
              focus4.attr("transform", "translate(" + x_amass(svg_x_mouse_pos) + "," + y_VLNC(a4[svg_x_mouse_pos]) + ")");
              focus4.select("text").text(function() { return a4[svg_x_mouse_pos]; }).style("fill", "red");
              focus4.select(".x-hover-line").attr("y2", height - y_VLNC(a4[svg_x_mouse_pos]));
              focus4.select(".y-hover-line").attr("x2", width + width);
          }
-         function update_mouse_pos5(){
+        function update_mouse_pos5(){
              //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-50)); //subtract by 3.5 because of axis transform
+             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-margin.left));
              focus5.attr("transform", "translate(" + x_amass(svg_x_mouse_pos) + "," + y_FOCUS(a5[svg_x_mouse_pos]) + ")");
              focus5.select("text").text(function() { return a5[svg_x_mouse_pos]; }).style("fill", "red");
              focus5.select(".x-hover-line").attr("y2", height-y_FOCUS(a5[svg_x_mouse_pos]));
              focus5.select(".y-hover-line").attr("x2", width + width);
-         }
-         function update_mouse_pos6(){
+        }
+        function update_mouse_pos6(){
              //get x axis position of mouse
-             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-50)); //subtract by 3.5 because of axis transform
+             svg_x_mouse_pos = Math.round(x_amass.invert(d3.mouse(this)[0]-margin.left));
              focus6.attr("transform", "translate(" + x_amass(svg_x_mouse_pos) + "," + y_MEDI(a6[svg_x_mouse_pos]) + ")");
              focus6.select("text").text(function() { return a6[svg_x_mouse_pos]; }).style("fill", "red");
              focus6.select(".x-hover-line").attr("y2", height-y_MEDI(a6[svg_x_mouse_pos]));
              focus6.select(".y-hover-line").attr("x2", width + width);
-         }
+        }
         })
  //---------------------File NOT uploaded into browser-------------------------------------------------------------
 

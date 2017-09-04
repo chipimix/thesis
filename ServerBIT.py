@@ -23,6 +23,7 @@
 import json
 import traceback
 
+import Queue
 import numpy as np
 import peakutils
 
@@ -32,8 +33,9 @@ from twisted.internet import protocol, reactor
 from bitalino import *
 from txws import WebSocketFactory
 
-previous_ppg=np.zeros(10000)
-global threshold
+prev_ppg = np.empty(0)
+
+
 
 
 
@@ -58,11 +60,19 @@ def tostring(data):
             aux_data[0, :501] = np.square(np.absolute(np.fft.rfft(data[0, :])))/1000
             aux_data[1, :501] = np.square(np.absolute(np.fft.rfft(data[1, :])))/1000
 
+            global prev_ppg
+            if prev_ppg.size > 9000:
+                prev_ppg=prev_ppg[1000:]
+            prev_ppg=np.append(prev_ppg, data[2])
+
+            print prev_ppg.size
+
             # ppg_no_baseline=peakutils.baseline(data[2])             #remove baseline from ppg signal
-            indexes = peakutils.indexes(data[2], thres=max(data[2])/1023, min_dist=500) #find its peak
-            print "max=", max(data[2]), " indexes = ", indexes
+            indexes = peakutils.peak.indexes(data[2], thres=max(0.5, 0.9 *max(data[2])/1023), min_dist=500) #find its peak
             for elmt in indexes:                                       #set up peak value in original ppg as 1023
-                data[2][elmt]=1023
+                if elmt > prev_ppg.size - 1000:
+                    data[2][elmt-prev_ppg.size+1000]=1023
+                    print "FOUND MAX, IDX=",elmt-prev_ppg.size+1000
 
             csv_file = file('readings/potato.csv', 'a')
             np.savetxt(csv_file, data, delimiter=",", fmt="%.3e")
