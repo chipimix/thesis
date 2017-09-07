@@ -6,6 +6,58 @@
     <title>retroVIS</title>
 </head>
 <style>
+
+    /* The side navigation menu */
+    .sidenav {
+        height: 100%; /* 100% Full-height */
+        width: 0; /* 0 width - change this with JavaScript */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Stay on top */
+        top: 0;
+        left: 0;
+        background-color: #111; /* Black*/
+        overflow-x: hidden; /* Disable horizontal scroll */
+        padding-top: 60px; /* Place content 60px from the top */
+        transition: 0.5s; /* 0.5 second transition effect to slide in the sidenav */
+    }
+
+    /* The navigation menu links */
+    .sidenav a {
+        padding: 8px 8px 8px 32px;
+        text-decoration: none;
+        font-size: 25px;
+        color: #818181;
+        display: block;
+        transition: 0.3s
+    }
+
+    /* When you mouse over the navigation links, change their color */
+    .sidenav a:hover, .offcanvas a:focus{
+        color: #f1f1f1;
+    }
+
+    /* Position and style the close button (top right corner) */
+    .sidenav .closebtn {
+        position: absolute;
+        top: 0;
+        right: 25px;
+        font-size: 36px;
+        margin-left: 50px;
+    }
+
+    /* Style page content - use this if you want to push the page content to the right when you open the side navigation */
+    #main {
+        transition: margin-left .5s;
+        padding: 0px;
+    }
+
+    /* On smaller screens, where height is less than 450px, change the style of the sidenav (less padding and a smaller font size) */
+    @media screen and (max-height: 450px) {
+        .sidenav {padding-top: 15px;}
+        .sidenav a {font-size: 18px;}
+    }
+
+
     body{
         height:100%;
         font: 12px sans-serif;
@@ -15,6 +67,31 @@
         stroke: #000;
         stroke-width: 1.5px;
     }
+
+    .grid line {
+      stroke: lightgrey;
+      stroke-opacity: 0.7;
+      shape-rendering: crispEdges;
+    }
+
+    .grid path {
+      stroke-width: 0;
+    }
+
+    .logo {
+      text-align: center;
+      font-size: x-large;
+      color: lightgray;
+      position:fixed;
+      display: block;
+      top:0%;
+      width: 9%;
+      height: 3%;
+      border-style: inset;
+      margin: 1px 0px 5px 0px;
+      background-color: #111;
+    }
+
     #slider {
         border-style: outset;
         position: fixed;
@@ -45,35 +122,76 @@
       stroke: #DC143C;
       stroke-width: 3px;
     }
+
+
+   .tick text{
+     font-size: 12px;
+   }
+
+   .tick line{
+     opacity: 0.2;
+   }
+
 </style>
 <body style="background: linear-gradient(to right, white, lightsteelblue, white); ">
+    <div id="mySidenav" class="sidenav">
+       <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+       <a href="#">RealTimeVIS</a>
+       <a href="#">Help</a>
+       <a href="#">About</a>
+       <a href="#">Contact</a>
+    </div>
 
-	<div id="slider">
+
+    <div id="main">
+        <div>
+            <span class="logo" onclick="openNav()"><strong> Menu</strong></span>
+        </div>
+
+        <div id="slider">
         <text id="time">00:00</text>
         <input type='range' min='0' max='0' step='1' value='0' id='rangeSlider' />
 	    <button type="button" id="start">Play</button>
 	    <button type="button" id="stop">Pause</button>
-	</div>
+        </div>
 
-    <section style="width:100%;height:30%; margin-top:2%;">
-        <svg id="EEG1" width="740" height="228"></svg>
-        <svg id="EEG2" width="740" height="228"></svg>
-    </section>
-    <section style="width:100%;height:30%;margin-bottom: 3px ">
-        <svg id="PPG" width="740" height="100%"></svg>
-        <svg id="HR" width="740" height="100%"></svg>
-    </section>
-    <section style="width:100%;height:30%;margin-bottom: 3px">
-        <svg id="VALNC" width="740" height="100%"></svg>
-        <svg id="FOCUS" width="740" height="100%"></svg>
-    </section>
-    <section style="width:100%;height:30%;margin-bottom: 3px">
-        <svg id="MEDI" width="740" height="100%"></svg>
-    </section>
-    <div style="height:5%;"></div>
+        <section style="width:100%;height:30%;margin-top:2%; margin-bottom:3px;">
+            <svg id="EEG1" width="744" height="232"></svg>
+            <svg id="EEG2" width="744" height="232"></svg>
+        </section>
+        <section style="width:100%;height:30%;margin-bottom: 3px ">
+            <svg id="PPG" width="49.5%" height="232"></svg>
+            <svg id="HR" width="49.5%" height="232"></svg>
+        </section>
+        <section style="width:100%;height:30%;margin-bottom: 3px">
+            <svg id="VALNC" width="49.5%" height="232"></svg>
+            <svg id="FOCUS" width="49.5%" height="232"></svg>
+        </section>
+        <section style="width:100%;height:30%;margin-bottom: 3px">
+            <svg id="MEDI" width="49.5%" height="323"></svg>
+        </section>
+    </div>
+
+
+
+    <div style="height:6%;"></div>
 </body>
 
 <script>
+    /* Set the width of the side navigation to 250px and the left margin of the page content to 250px and add a black background color to body */
+    function openNav() {
+        document.getElementById("mySidenav").style.width = "250px";
+        document.getElementById("main").style.marginLeft = "250px";
+        document.body.style.backgroundColor = "rgba(0,0,0,0.4)";
+    }
+
+    /* Set the width of the side navigation to 0 and the left margin of the page content to 0, and the background color of body to white */
+    function closeNav() {
+        document.getElementById("mySidenav").style.width = "0";
+        document.getElementById("main").style.marginLeft = "0";
+        document.body.style.backgroundColor = "white";
+    }
+
     var sample_rate = 1000;
     var fft_res = 501;
     var a0=[],          //channels with clean LEFT EEG recording data
@@ -165,243 +283,26 @@
 
          if (!svg6.select("g").empty()) {svg6.select("g").remove()}
          //set up margins for each graph
+
          var margin = {top: 10, right: 0, bottom: 10, left: 50},
-             width = +svg0.attr("width"),
-             height = +svg0.attr("height") - margin.top - margin.bottom;
-         //set up title of each svg image
-         svg0.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
-             .style("font-size", "16px").style("text-decoration", "underline").text("FP2 Power Spectrum");
-         svg1.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
-             .style("font-size", "16px").style("text-decoration", "underline").text("FP1 Power Spectrum");
-         svg2.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
-             .style("font-size", "16px").style("text-decoration", "underline").text("Photoplethysmogram");
-         svg2.append("text").attr("x", "50%").attr("y", "22%").attr("text-anchor", "middle").attr("id","bpm_display")
-             .style("font-size", "16px").text("60 bpm");
-         svg3.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
-             .style("font-size", "16px").style("text-decoration", "underline").text("Heart Rate");
-         svg4.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
-             .style("font-size", "16px").style("text-decoration", "underline").text("Emotional Valence");
-         svg5.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
-             .style("font-size", "16px").style("text-decoration", "underline").text("Engagement");
-         svg6.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
-             .style("font-size", "16px").style("text-decoration", "underline").text("Meditation");
+                width = +svg0.attr("width"),
+                height = +svg0.attr("height") - margin.top - margin.bottom;
 
-         //translate each svg image so we can have space for the axis
-         chart0= svg0.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-         chart1= svg1.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-         chart2= svg2.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-         chart3= svg3.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-         chart4= svg4.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-         chart5= svg5.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-         chart6= svg6.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-         //Now that we know the recording's duration we can set the slider's max
-         d3.select("#rangeSlider").attr("max",data[0].length/fft_res);
-         //Determine current position in slider (It's zero)
-         curr_pos=d3.select("#rangeSlider").property("value");
-         //Create a quantitative linear scale for each axis's distinct domain:
-         x_EEG = d3.scaleLinear().domain([1, fft_res-450-1]).range([0, width-margin.left*1.2]); //used for EEGs
-         x_PPG = d3.scaleLinear().domain([0, sample_rate - 1]).range([0, width-margin.left*1.2]); //used for PPG
-         //used for EMOTIONAL VALENCE, ENGAGEMENT & MEDITATION:
-         x_amass = d3.scaleLinear().domain([0, curr_pos+1]).range([0, width-margin.left*1.2]);
-
-         y_EEG = d3.scaleLog().domain([ 10000000 , 1]).range([0, height-margin.top]); //used for EEGs
-         y_PPG = d3.scaleLinear().domain([1024, 0]).range([0, height-margin.top]); //used for PPG
-         y_VLNC = d3.scaleLinear().domain([emo_valnc_max, emo_valnc_min]).range([0, height]); //used for VALENCE
-         y_FOCUS = d3.scaleLinear().domain([engagement_max, engagement_min]).range([0, height]); //used for ENGAGEMENT
-         y_MEDI = d3.scaleLinear().domain([meditation_max, meditation_min]).range([0, height]); //used for MEDITATION
-         y_HR = d3.scaleLinear().domain([hr_max, hr_min]).range([0, height]); //used for HR / time
-         line_EEG = d3.line()
-             .x(function (d, i) {return x_EEG(i+1);}) //return x(i+1) -- we discard 0Hz from t
-             .y(function (d, i) {return y_EEG(d);})
-             .curve(d3.curveCatmullRom);
-         line_PPG = d3.line()
-             .x(function (d, i) { return x_PPG(i);})
-             .y(function (d, i) { return y_PPG(d);});
-         line_HR = d3.line()
-             .x(function (d, i) {return x_amass(i);})
-             .y(function (d, i) {return y_HR(d);})
-             .curve(d3.curveCatmullRom);
-         line_VLNC = d3.line()
-             .x(function (d, i) {return x_amass(i);})
-             .y(function (d, i) {return y_VLNC(d);})
-             .curve(d3.curveCatmullRom);
-         line_FOCUS = d3.line()
-             .x(function (d, i) {return x_amass(i);})
-             .y(function (d, i) {return y_FOCUS(d);})
-             .curve(d3.curveCatmullRom);
-         line_MEDI = d3.line()
-             .x(function (d, i) {return x_amass(i);})
-             .y(function (d, i) {return y_MEDI(d);})
-             .curve(d3.curveCatmullRom);
-
-         svg0.on("mouseover", function() { focus0.style("display", null); })
-             .on("mouseout", function() { focus0.style("display", "none"); })
-             .on("mousemove",update_mouse_pos0);
-         svg1.on("mouseover", function() { focus1.style("display", null); })
-             .on("mouseout", function() { focus1.style("display", "none"); })
-             .on("mousemove",update_mouse_pos1);
-         svg2.on("mouseover", function() { focus2.style("display", null); })
-             .on("mouseout", function() { focus2.style("display", "none"); })
-             .on("mousemove",update_mouse_pos2);
-         svg3.on("mouseover", function() { focus3.style("display", null); })
-             .on("mouseout", function() { focus3.style("display", "none"); })
-             .on("mousemove",update_mouse_pos3);
-         svg4.on("mouseover", function() { focus4.style("display", null); })
-             .on("mouseout", function() { focus4.style("display", "none"); })
-             .on("mousemove",update_mouse_pos4);
-         svg5.on("mouseover", function() { focus5.style("display", null); })
-             .on("mouseout", function() { focus5.style("display", "none"); })
-             .on("mousemove",update_mouse_pos5);
-         svg6.on("mouseover", function() { focus6.style("display", null); })
-             .on("mouseout", function() { focus6.style("display", "none"); })
-             .on("mousemove",update_mouse_pos6);
-
-         chart0.append("defs").append("clipPath")
-             .attr("id", "clip0") //attr must differ
-             .append("rect")
-             .attr("width", width)
-             .attr("height", height);
-         chart0.append("g")
-            .attr("class", "axis axis--x")
-            .attr("transform", "translate(0," + y_EEG(1) + ")")
-            .call(d3.axisBottom(x_EEG).ticks(25));
-         chart0.append("g")
-            .attr("class", "axis axis--y")
-            .call(d3.axisLeft(y_EEG));
-         chart0.append("g")
-             .attr("clip-path", "url(#clip0)")
-             .append("path")
-             .attr("id","path_0")
-             .attr("class", "line")
-             .attr("d", line_EEG(Array.apply(null, Array(50)).map(Number.prototype.valueOf,1))) //linearscale=0, logscale=1
-             .attr("transform", null);
-
-         chart1.append("defs").append("clipPath")
-             .attr("id", "clip1")
-             .append("rect")
-             .attr("width", width)
-             .attr("height", height);
-         chart1.append("g")
-             .attr("class", "axis axis--x")
-             .attr("transform", "translate(0," + y_EEG(1) + ")")
-             .call(d3.axisBottom(x_EEG).ticks(25));
-         chart1.append("g")
-             .attr("class", "axis axis--y")
-             .call(d3.axisLeft(y_EEG));
-         chart1.append("g")
-              .attr("clip-path", "url(#clip1)")
-              .append("path")
-              .attr("id","path_1")
-              .attr("class", "line")
-              .attr("d", line_EEG(Array.apply(null, Array(50)).map(Number.prototype.valueOf,1)))//linearscale=0, logscale=1
-              .attr("transform", null);
-
-         chart2.append("defs").append("clipPath")
-            .attr("id", "clip2")
-            .append("rect")
-            .attr("width", width)
-            .attr("height", height);
-         chart2.append("g")
-            .attr("class", "axis axis--x")
-            .attr("transform", "translate(0," + y_PPG(0) + ")")
-            .call(d3.axisBottom(x_PPG));
-         chart2.append("g")
-            .attr("class", "axis axis--y")
-            .call(d3.axisLeft(y_PPG));
-         chart2.append("g")
-             .attr("clip-path", "url(#clip1)")
-             .append("path")
-             .attr("id","path_2")
-             .datum(data_PPG)
-             .attr("class", "line")
-             .attr("d", line_PPG)
-             .attr("transform", null);
-
-         chart3.append("defs").append("clipPath")
-             .attr("id", "clip3")
-             .append("rect")
-             .attr("width", width)
-             .attr("height", height);
-         chart3.append("g")
-             .attr("class", "axis axis--x")
-             .attr("transform", "translate(0," + y_HR(0) + ")")
-             .call(d3.axisBottom(x_amass).ticks(1));
-         chart3.append("g")
-             .attr("class", "axis axis--y")
-             .call(d3.axisLeft(y_HR));
-         chart3.append("g")
-             .attr("clip-path", "url(#clip3)")
-             .append("path")
-             .attr("id","path_3")
-             .attr("class", "line");
-
-         chart4.append("defs").append("clipPath")
-             .attr("id", "clip4")
-             .append("rect")
-             .attr("width", width)
-             .attr("height", height);
-         chart4.append("g")
-             .attr("class", "axis axis--x")
-             .attr("transform", "translate(0," + y_VLNC(0) + ")")
-             .call(d3.axisBottom(x_PPG).ticks(1));
-         chart4.append("g")
-             .attr("class", "axis axis--y")
-             .call(d3.axisLeft(y_VLNC));
-         chart4.append("g")
-             .attr("clip-path", "url(#clip4)")
-             .append("path")
-             .attr("id","path_4")
-             .attr("class", "line");
-
-         chart5.append("defs").append("clipPath")
-             .attr("id", "clip5")
-             .append("rect")
-             .attr("width", width)
-             .attr("height", height);
-         chart5.append("g")
-             .attr("class", "axis axis--x")
-             .attr("transform", "translate(0," + y_FOCUS(0) + ")")
-             .call(d3.axisBottom(x_PPG).ticks(1));
-         chart5.append("g")
-             .attr("class", "axis axis--y")
-             .call(d3.axisLeft(y_FOCUS));
-         chart5.append("g")
-             .attr("clip-path", "url(#clip5)")
-             .append("path")
-             .attr("id","path_5")
-             .attr("class", "line");
-
-         chart6.append("defs").append("clipPath")
-             .attr("id", "clip6")
-             .append("rect")
-             .attr("width", width)
-             .attr("height", height);
-         chart6.append("g")
-             .attr("class", "axis axis--x")
-             .attr("transform", "translate(0," + y_MEDI(0) + ")")
-             .call(d3.axisBottom(x_PPG).ticks(1));
-         chart6.append("g")
-             .attr("class", "axis axis--y")
-             .call(d3.axisLeft(y_MEDI));
-         chart6.append("g")
-             .attr("clip-path", "url(#clip6)")
-             .append("path")
-             .attr("id","path_6")
-             .attr("class", "line");
+         drawAllCharts();
 
          drawHighlight();
 
          //first plot:
-         drawFFT();
-         drawLineChart();
+         redrawFFT();
+         redrawLineChart();
          
          //plot charts according to range slider position
          d3.select('#rangeSlider').on('input', function() {
              curr_pos=d3.select("#rangeSlider").property("value");
              updateSlider();
-             drawFFT();
-             drawLineChart();
+             redrawFFT();
+             redrawLineChart();
 
         });
          //plot charts automatically if play button pressed 
@@ -410,8 +311,8 @@
             clearInterval (myTimer);
             myTimer = setInterval (function() {
                 updateSlider();
-                drawFFT();
-                drawLineChart();
+                redrawFFT();
+                redrawLineChart();
             }, 1000);
         });
 
@@ -420,12 +321,253 @@
           clearInterval (myTimer);
         });
 
+        function drawAllCharts(){
 
-        //drawLineChart interpolates xvalues (time on xx axis)
-        function drawLineChart(){
+             //set up title of each svg image
+             svg0.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
+                 .style("font-size", "16px").style("text-decoration", "underline").text("FP2 Power Spectrum");
+             svg1.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
+                 .style("font-size", "16px").style("text-decoration", "underline").text("FP1 Power Spectrum");
+             svg2.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
+                 .style("font-size", "16px").style("text-decoration", "underline").text("Photoplethysmogram");
+             svg2.append("text").attr("x", "50%").attr("y", "22%").attr("text-anchor", "middle").attr("id","bpm_display")
+                 .style("font-size", "16px").text("60 bpm");
+             svg3.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
+                 .style("font-size", "16px").style("text-decoration", "underline").text("Heart Rate");
+             svg4.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
+                 .style("font-size", "16px").style("text-decoration", "underline").text("Emotional Valence");
+             svg5.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
+                 .style("font-size", "16px").style("text-decoration", "underline").text("Engagement");
+             svg6.append("text").attr("x", "50%").attr("y", "7%").attr("text-anchor", "middle")
+                 .style("font-size", "16px").style("text-decoration", "underline").text("Meditation");
+
+             //translate each svg image so we can have space for the axis
+             chart0= svg0.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+             chart1= svg1.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+             chart2= svg2.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+             chart3= svg3.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+             chart4= svg4.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+             chart5= svg5.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+             chart6= svg6.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+             //Now that we know the recording's duration we can set the slider's max
+             d3.select("#rangeSlider").attr("max",data[0].length/fft_res);
+             //Determine current position in slider (It's zero)
+             curr_pos=d3.select("#rangeSlider").property("value");
+             //Create a quantitative linear scale for each axis's distinct domain:
+             x_EEG = d3.scaleLinear().domain([1, fft_res-450-1]).range([0, width-margin.left*1.2]); //used for EEGs
+             x_PPG = d3.scaleLinear().domain([0, sample_rate - 1]).range([0, width-margin.left*1.2]); //used for PPG
+             //used for EMOTIONAL VALENCE, ENGAGEMENT & MEDITATION:
+             x_amass = d3.scaleLinear().domain([0, curr_pos+1]).range([0, width-margin.left*1.2]);
+
+             y_EEG = d3.scaleLog().domain([ 10000000 , 1]).range([0, height-margin.top]); //used for EEGs
+             y_PPG = d3.scaleLinear().domain([1024, 0]).range([0, height-margin.top]); //used for PPG
+             y_VLNC = d3.scaleLinear().domain([emo_valnc_max, emo_valnc_min]).range([0, height-margin.top]); //used for VALENCE
+             y_FOCUS = d3.scaleLinear().domain([engagement_max, engagement_min]).range([0, height-margin.top]); //used for ENGAGEMENT
+             y_MEDI = d3.scaleLinear().domain([meditation_max, meditation_min]).range([0, height-margin.top]); //used for MEDITATION
+             y_HR = d3.scaleLinear().domain([hr_max, hr_min]).range([0, height-margin.top]); //used for HR / time
+
+            // gridlines in x axis function
+            function make_x_gridlines() {
+                return d3.axisBottom(x_EEG)
+                    .ticks(25)
+            }
+
+            // gridlines in y axis function
+            function make_y_gridlines() {
+                return d3.axisLeft(y_EEG)
+                    .ticks(25)
+            }
+
+
+
+             line_EEG = d3.line()
+                 .x(function (d, i) {return x_EEG(i+1);}) //return x(i+1) -- we discard 0Hz from t
+                 .y(function (d, i) {return y_EEG(d);})
+                 .curve(d3.curveCatmullRom);
+             line_PPG = d3.line()
+                 .x(function (d, i) { return x_PPG(i);})
+                 .y(function (d, i) { return y_PPG(d);});
+             line_HR = d3.line()
+                 .x(function (d, i) {return x_amass(i);})
+                 .y(function (d, i) {return y_HR(d);})
+                 .curve(d3.curveCatmullRom);
+             line_VLNC = d3.line()
+                 .x(function (d, i) {return x_amass(i);})
+                 .y(function (d, i) {return y_VLNC(d);})
+                 .curve(d3.curveCatmullRom);
+             line_FOCUS = d3.line()
+                 .x(function (d, i) {return x_amass(i);})
+                 .y(function (d, i) {return y_FOCUS(d);})
+                 .curve(d3.curveCatmullRom);
+             line_MEDI = d3.line()
+                 .x(function (d, i) {return x_amass(i);})
+                 .y(function (d, i) {return y_MEDI(d);})
+                 .curve(d3.curveCatmullRom);
+
+             svg0.on("mouseover", function() { focus0.style("display", null); })
+                 .on("mouseout", function() { focus0.style("display", "none"); })
+                 .on("mousemove",update_mouse_pos0);
+             svg1.on("mouseover", function() { focus1.style("display", null); })
+                 .on("mouseout", function() { focus1.style("display", "none"); })
+                 .on("mousemove",update_mouse_pos1);
+             svg2.on("mouseover", function() { focus2.style("display", null); })
+                 .on("mouseout", function() { focus2.style("display", "none"); })
+                 .on("mousemove",update_mouse_pos2);
+             svg3.on("mouseover", function() { focus3.style("display", null); })
+                 .on("mouseout", function() { focus3.style("display", "none"); })
+                 .on("mousemove",update_mouse_pos3);
+             svg4.on("mouseover", function() { focus4.style("display", null); })
+                 .on("mouseout", function() { focus4.style("display", "none"); })
+                 .on("mousemove",update_mouse_pos4);
+             svg5.on("mouseover", function() { focus5.style("display", null); })
+                 .on("mouseout", function() { focus5.style("display", "none"); })
+                 .on("mousemove",update_mouse_pos5);
+             svg6.on("mouseover", function() { focus6.style("display", null); })
+                 .on("mouseout", function() { focus6.style("display", "none"); })
+                 .on("mousemove",update_mouse_pos6);
+
+             chart0.append("defs").append("clipPath")
+                 .attr("id", "clip0") //attr must differ
+                 .append("rect")
+                 .attr("width", width)
+                 .attr("height", height);
+             chart0.append("g")
+                .attr("class", "axis axis--x")
+                .attr("transform", "translate(0," + y_EEG(1) + ")")
+                .call(d3.axisBottom(x_EEG).ticks(25));
+             chart0.append("g")
+                .attr("class", "axis axis--y")
+                .call(d3.axisLeft(y_EEG));
+             chart0.append("g")
+                 .attr("clip-path", "url(#clip0)")
+                 .append("path")
+                 .attr("id","path_0")
+                 .attr("class", "line")
+                 .attr("d", line_EEG(Array.apply(null, Array(50)).map(Number.prototype.valueOf,1))) //linearscale=0, logscale=1
+                 .attr("transform", null);
+
+             chart1.append("defs").append("clipPath")
+                 .attr("id", "clip1")
+                 .append("rect")
+                 .attr("width", width)
+                 .attr("height", height);
+             chart1.append("g")
+                 .attr("class", "axis axis--x")
+                 .attr("transform", "translate(0," + y_EEG(1) + ")")
+                 .call(make_x_gridlines()
+                      .tickSize(-height)
+                 );
+             chart1.append("g")
+                 .attr("class", "axis axis--y")
+                 .call(d3.axisLeft(y_EEG));
+             chart1.append("g")
+                  .attr("clip-path", "url(#clip1)")
+                  .append("path")
+                  .attr("id","path_1")
+                  .attr("class", "line")
+                  .attr("d", line_EEG(Array.apply(null, Array(50)).map(Number.prototype.valueOf,1)))//linearscale=0, logscale=1
+                  .attr("transform", null);
+
+             chart2.append("defs").append("clipPath")
+                .attr("id", "clip2")
+                .append("rect")
+                .attr("width", width)
+                .attr("height", height);
+             chart2.append("g")
+                .attr("class", "axis axis--x")
+                .attr("transform", "translate(0," + y_PPG(0) + ")")
+                .call(d3.axisBottom(x_PPG));
+             chart2.append("g")
+                .attr("class", "axis axis--y")
+                .call(d3.axisLeft(y_PPG));
+             chart2.append("g")
+                 .attr("clip-path", "url(#clip1)")
+                 .append("path")
+                 .attr("id","path_2")
+                 .datum(data_PPG)
+                 .attr("class", "line")
+                 .attr("d", line_PPG)
+                 .attr("transform", null);
+
+             chart3.append("defs").append("clipPath")
+                 .attr("id", "clip3")
+                 .append("rect")
+                 .attr("width", width)
+                 .attr("height", height);
+             chart3.append("g")
+                 .attr("class", "axis axis--x_amass")
+                 .attr("transform", "translate(0," + y_HR(0) + ")")
+                 .call(d3.axisBottom(x_amass).ticks(0,"s"));
+             chart3.append("g")
+                 .attr("class", "axis axis--y")
+                 .call(d3.axisLeft(y_HR));
+             chart3.append("g")
+                 .attr("clip-path", "url(#clip3)")
+                 .append("path")
+                 .attr("id","path_3")
+                 .attr("class", "line");
+
+             chart4.append("defs").append("clipPath")
+                 .attr("id", "clip4")
+                 .append("rect")
+                 .attr("width", width)
+                 .attr("height", height);
+             chart4.append("g")
+                 .attr("class", "axis axis--x_amass")
+                 .attr("transform", "translate(0," + y_VLNC(0) + ")")
+                 .call(d3.axisBottom(x_amass).ticks(0));
+             chart4.append("g")
+                 .attr("class", "axis axis--y")
+                 .call(d3.axisLeft(y_VLNC));
+             chart4.append("g")
+                 .attr("clip-path", "url(#clip4)")
+                 .append("path")
+                 .attr("id","path_4")
+                 .attr("class", "line");
+
+             chart5.append("defs").append("clipPath")
+                 .attr("id", "clip5")
+                 .append("rect")
+                 .attr("width", width)
+                 .attr("height", height);
+             chart5.append("g")
+                 .attr("class", "axis axis--x_amass")
+                 .attr("transform", "translate(0," + y_FOCUS(0) + ")")
+                 .call(d3.axisBottom(x_amass).ticks(0));
+             chart5.append("g")
+                 .attr("class", "axis axis--y")
+                 .call(d3.axisLeft(y_FOCUS));
+             chart5.append("g")
+                 .attr("clip-path", "url(#clip5)")
+                 .append("path")
+                 .attr("id","path_5")
+                 .attr("class", "line");
+
+             chart6.append("defs").append("clipPath")
+                 .attr("id", "clip6")
+                 .append("rect")
+                 .attr("width", width)
+                 .attr("height", height);
+             chart6.append("g")
+                 .attr("class", "axis axis--x_amass")
+                 .attr("transform", "translate(0," + y_MEDI(0) + ")")
+                 .call(d3.axisBottom(x_amass).ticks(0));
+             chart6.append("g")
+                 .attr("class", "axis axis--y")
+                 .call(d3.axisLeft(y_MEDI));
+             chart6.append("g")
+                 .attr("clip-path", "url(#clip6)")
+                 .append("path")
+                 .attr("id","path_6")
+                 .attr("class", "line");
+        }
+        //redrawLineChart interpolates xvalues (time on xx axis)
+        function redrawLineChart(){
             var t = d3.transition().duration(500);
             //update xx domain of HR Valence, Engagement & Meditation plots
             x_amass = d3.scaleLinear().domain([0, curr_pos]).range([0, width-margin.left*1.2]);
+            d3.selectAll(".axis--x_amass").call(d3.axisBottom(x_amass).ticks(Math.ceil(curr_pos/10.0)));
             line_VLNC = d3.line()
              .x(function (d, i) {return x_amass(i);})
              .y(function (d, i) {return y_VLNC(d);})
@@ -467,8 +609,9 @@
                data_PPG.shift();
            }
         }
-        //drawFFT interpolates yvalues (frequencies on xx axis)
-        function drawFFT(){
+
+        //redrawFFT interpolates yvalues (frequencies on xx axis)
+        function redrawFFT(){
 //            console.log(a0.slice(1+curr_pos*fft_res,curr_pos*fft_res+fft_res-450 -1));
             curr_pos=d3.select("#rangeSlider").property("value");
             d3.select("path#path_0.line")
@@ -753,17 +896,17 @@
 
     }
     d3.select("html")
-        .style("height","100%")
         .append("input")
         .attr("type", "file")
         .attr("accept", ".csv")
         .style("margin", "1px 0px 5px 0px")
         .style("top", "0%")
         .style("border-style","outset")
-        .style("left", "0%%")
-        .style("width","100%")
+        .style("right", "0%")
+        .style("width","90%")
+        .style("height","3%")
         .style("background-color","white")
-        .style("position", "fixed")
+        .style("position", "absolute")
         .style("font-weight","bold")
         .on("change", function() {
             console.log("loading file");
